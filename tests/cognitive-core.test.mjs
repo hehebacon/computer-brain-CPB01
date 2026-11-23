@@ -82,12 +82,15 @@ test("HCS tracks interaction familiarity without describing a relationship",()=>
  const h=new HumanCognitiveSystems();
  const first=h.process("Chào, tui muốn hỏi");
  assert.equal(first.familiarity.level,"new");
+ assert.equal(first.affect.score,0);
  h.process("Cảm ơn");
  h.process("Tui muốn biết thêm");
  const later=h.process("Giải thích tiếp nhé");
  assert.equal(later.familiarity.level,"occasional");
  assert.equal(later.familiarity.interactionCount,4);
  assert.match(later.familiarity.meaning,/không phải mức độ tình cảm/);
+ h.setAffect(-48);
+ assert.equal(h.resetAffect().score,0);
 });
 test("HCS identifies dialogue acts and is integrated into cognitive traces",()=>{
  const h=new HumanCognitiveSystems();
@@ -107,6 +110,7 @@ test("HCS detects praise and insults as separate sentiment signals",()=>{
  assert.equal(insult.insultDetected,true);
  assert.ok(insult.valence<0);
  assert.ok(recognizeEmotion("I am not happy").valence<0);
+ assert.equal(detectLanguageHint("I am not happy").language,"en");
  assert.ok(recognizeEmotion("Tui không vui").valence<0);
 });
 
