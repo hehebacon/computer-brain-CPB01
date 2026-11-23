@@ -225,3 +225,27 @@ test("Bond recognizes common code failure reports as corrections",()=>{
  english.observeFeedback("This doesn't work",recognizeEmotion("This doesn't work"));
  assert.ok(english.snapshot().score<25);
 });
+
+
+test("IF/ELSE combines stored facts with context comparisons",()=>{
+ const engine=new ReasoningEngine();
+ const facts=[{subject:"Milo",relation:"type",object:"dog",polarity:true}];
+ const decision=engine.decideIfElse({
+  if:{all:[
+   {fact:{subject:"Milo",relation:"type",object:"dog"}},
+   {field:"confidence",op:"gte",value:0.7}
+  ]},
+  then:"supported",
+  else:"not-supported"
+ },facts,{confidence:0.9});
+ assert.equal(decision.branch,"then");
+ const unknown=engine.decideIfElse({
+  if:{all:[
+   {fact:{subject:"Milo",relation:"type",object:"dog"}},
+   {field:"confidence",op:"gte",value:0.7}
+  ]},
+  then:"supported",
+  else:"not-supported"
+ },facts,{});
+ assert.equal(unknown.branch,"undetermined");
+});
