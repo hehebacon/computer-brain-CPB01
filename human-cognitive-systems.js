@@ -312,7 +312,11 @@ export class AgentAffectModel{
  }
  recover(at=Date.now()){
   const elapsed=Math.max(0,Number(at)-this.lastUpdatedAt);
-  if(elapsed>0){this.score=Math.round(this.score*Math.pow(0.5,elapsed/this.halfLifeMs));if(Math.abs(this.score)<=3)this.score=0;this.lastUpdatedAt=Number(at);}
+  if(elapsed>0){
+   this.score=Math.round(this.score*Math.pow(0.5,elapsed/this.halfLifeMs));
+   if(Math.abs(this.score)<=3){this.score=0;this.lastState="Ổn định";}
+   this.lastUpdatedAt=Number(at);
+  }
   return this.score;
  }
  observeOutcome({confidence=0.2,isQuestion=false,hasEvidence=false,error=false}={},at=Date.now()){
