@@ -220,6 +220,40 @@ export class AffectiveState{
  }
  export(){return {score:this.score,lastEmotion:this.lastEmotion,lastSignal:this.lastSignal,updatedAt:this.updatedAt,source:this.source};}
 }
+export class AgentAffectModel{
+ constructor(data={}){
+  this.score=Math.round(clamp(Number(data.score)||0,-100,100));
+  this.confidence=Math.round(clamp(Number(data.confidence??55),0,100));
+  this.engagement=Math.round(clamp(Number(data.engagement??50),0,100));
+  this.focus=Math.round(clamp(Number(data.focus??55),0,100));
+  this.lastState=data.lastState||"Ổn định";
+  this.cycles=Number(data.cycles)||0;
+  this.updatedAt=data.updatedAt||Date.now();
+ }
+ observeOutcome({confidence=0.2,isQuestion=false,hasEvidence=false}={}){
+  const certainty=clamp(Number(confidence)||0);
+  const delta=(certainty>=0.75?8:certainty>=0.45?2:-7)+(isQuestion?3:0)+(hasEvidence?2:0);
+  const next=clamp(this.score*0.88+delta,-100,100);
+  this.score=Math.abs(next)<3?0:Math.round(next);
+  this.confidence=Math.round(this.confidence*0.65+certainty*100*0.35);
+  this.engagement=Math.round(clamp(this.engagement*0.72+26+(isQuestion?10:0)+(hasEvidence?8:0),0,100));
+  this.focus=Math.round(clamp(this.focus*0.7+25+certainty*50,0,100));
+  this.cycles++;
+  this.updatedAt=Date.now();
+  this.lastState=certainty<0.3?"Thận trọng":isQuestion&&!hasEvidence?"Tò mò / tìm hiểu":certainty>=0.75?"Tập trung":"Ổn định";
+  return this.snapshot();
+ }
+ snapshot(){
+  return {
+   score:this.score,minimum:-100,maximum:100,baseline:0,
+   label:this.score>=35?"Hứng thú":this.score<=-25?"Thận trọng":"Ổn định",
+   mode:this.lastState,confidence:this.confidence,engagement:this.engagement,focus:this.focus,
+   cycles:this.cycles,updatedAt:this.updatedAt,
+   meaning:"Trạng thái vận hành mô phỏng nội bộ, cập nhật theo độ chắc chắn và tiến trình xử lý; không phải trải nghiệm chủ quan."
+  };
+ }
+ export(){return {score:this.score,confidence:this.confidence,engagement:this.engagement,focus:this.focus,lastState:this.lastState,cycles:this.cycles,updatedAt:this.updatedAt};}
+}
 export class FamiliarityModel{
  constructor(data={}){this.turns=Number(data.turns)||0;this.firstSeen=data.firstSeen||null;this.lastSeen=data.lastSeen||null;this.styleCounts=data.styleCounts||{};}
  observe(input,at=Date.now()){
@@ -237,15 +271,23 @@ export class FamiliarityModel{
  export(){return {turns:this.turns,firstSeen:this.firstSeen,lastSeen:this.lastSeen,styleCounts:this.styleCounts};}
 }
 export class HumanCognitiveSystems{
- constructor(data={}){this.familiarity=new FamiliarityModel(data.familiarity);this.affect=new AffectiveState(data.affect);}
+ constructor(data={}){this.familiarity=new FamiliarityModel(data.familiarity);this.affect=new AffectiveState(data.userAffect||data.affect);this.agentAffect=new AgentAffectModel(data.agentAffect);this.lastProfile=null;}
  process(input){
   const emotion=recognizeEmotion(input),question=classifyQuestion(input),dialogueAct=classifyDialogueAct(input),familiarity=this.familiarity.observe(input),affect=this.affect.observe(input,emotion);
   const attention=words(input).filter(w=>w.length>3).slice(-8);
   const language=question.language&&question.language!=="und"?question.language:emotion.language;
-  return {emotion,question,dialogueAct,familiarity,affect,language,attention,selfMonitoring:{uncertainty:Math.max(0,1-Math.max(emotion.confidence,question.confidence)),needsClarification:question.isQuestion&&question.confidence<0.55}};
+  this.lastProfile={emotion,question,dialogueAct,familiarity,affect,userAffect:affect,agentAffect:this.agentAffect.snapshot(),language,attention,selfMonitoring:{uncertainty:Math.max(0,1-Math.max(emotion.confidence,question.confidence)),needsClarification:question.isQuestion&&question.confidence<0.55}};
+  return this.lastProfile;
+ }
+ recordOutcome({confidence=0.2,question=this.lastProfile?.question}={}){
+  const agentAffect=this.agentAffect.observeOutcome({confidence,isQuestion:Boolean(question?.isQuestion),hasEvidence:Number(confidence)>=0.65});
+  const userScore=this.affect.snapshot().score;
+  const adaptation=userScore<=-30?"supportive":question?.isQuestion&&question.confidence<0.6?"clarifying":this.lastProfile?.language?.language==="und"?"language-aware":"direct";
+  if(this.lastProfile){this.lastProfile.agentAffect=agentAffect;this.lastProfile.adaptation=adaptation;}
+  return {agentAffect,adaptation};
  }
  setAffect(score){return this.affect.set(score);}
  resetAffect(){return this.affect.reset();}
- reset(){this.familiarity.reset();this.affect.reset();}
- export(){return {familiarity:this.familiarity.export(),affect:this.affect.export()};}
+ reset(){this.familiarity.reset();this.affect.reset();this.agentAffect=new AgentAffectModel();}
+ export(){return {familiarity:this.familiarity.export(),affect:this.affect.export(),userAffect:this.affect.export(),agentAffect:this.agentAffect.export()};}
 }
