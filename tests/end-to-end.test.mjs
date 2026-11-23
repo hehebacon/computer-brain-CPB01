@@ -214,3 +214,14 @@ test("Bond accepts explicit friendly rapport feedback but ignores unrelated happ
  assert.equal(bond.snapshot().score,1);
  assert.equal(bond.snapshot().positiveDays,1);
 });
+
+
+test("Bond recognizes common code failure reports as corrections",()=>{
+ const bond=new BondTrustModel({score:25});
+ bond.observeFeedback("Đoạn code này chạy không được",recognizeEmotion("Đoạn code này chạy không được"));
+ assert.ok(bond.snapshot().score<25);
+ assert.ok(bond.snapshot().trustDebt>0);
+ const english=new BondTrustModel({score:25});
+ english.observeFeedback("This doesn't work",recognizeEmotion("This doesn't work"));
+ assert.ok(english.snapshot().score<25);
+});
