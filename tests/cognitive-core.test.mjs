@@ -193,3 +193,12 @@ test("user emotion estimate and CPB-01 internal affect are independent",()=>{
  assert.equal(h.export().userAffect.score,userScore);
  assert.equal(h.export().agentAffect.score,outcome.agentAffect.score);
 });
+
+
+test("low internal confidence selects cautious response adaptation",()=>{
+ const h=new HumanCognitiveSystems();
+ const profile=h.process("Hôm nay là một ngày bình thường.");
+ const outcome=h.recordOutcome({confidence:0.1,question:profile.question});
+ assert.equal(outcome.adaptation,"cautious");
+ assert.equal(outcome.agentAffect.mode,"Thận trọng");
+});
