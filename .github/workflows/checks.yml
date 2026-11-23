@@ -1,0 +1,19 @@
+name: CPB-01 checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run input-engine tests
+        run: npm test
+      - name: Build static site
+        run: bash build.sh
