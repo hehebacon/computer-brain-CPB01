@@ -78,8 +78,17 @@ export class ReasoningEngine{
   if(facts.some(f=>factMatches(pattern,f)&&f.polarity===false))return "false";
   return "unknown";
  }
+ usesContextCondition(condition){
+  if(Array.isArray(condition))return condition.some(item=>this.usesContextCondition(item));
+  if(!condition||typeof condition!=="object")return false;
+  if(condition.op&&condition.field)return true;
+  if(Array.isArray(condition.all))return condition.all.some(item=>this.usesContextCondition(item));
+  if(Array.isArray(condition.any))return condition.any.some(item=>this.usesContextCondition(item));
+  if(condition.not)return this.usesContextCondition(condition.not);
+  return false;
+ }
  decideIfElse({if:condition,then:thenValue,else:elseValue},facts=[],context={}){
-  const status=condition?.op?this.evaluateCondition(condition,context):this.evaluateFactCondition(condition,facts);
+  const status=this.usesContextCondition(condition)?this.evaluateCondition(condition,context):this.evaluateFactCondition(condition,facts);
   if(status===true||status==="true")return {status:"true",branch:"then",value:thenValue,reason:"Condition has explicit supporting evidence."};
   if(status===false||status==="false")return {status:"false",branch:"else",value:elseValue,reason:"Condition has explicit contradictory evidence."};
   return {status:"unknown",branch:"undetermined",value:null,reason:"Missing evidence is not treated as false."};
