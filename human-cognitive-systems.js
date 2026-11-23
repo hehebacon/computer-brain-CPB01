@@ -113,7 +113,7 @@ export function recognizeEmotion(input){
 const QUESTION_PREFIXES=[
  ["what is","definition","en"],["what are","definition","en"],["who is","person","en"],["who are","person","en"],["why","cause","en"],["where","location","en"],["when","time","en"],["how many","quantity","en"],["how much","quantity","en"],["how","method-or-process","en"],["what","definition-or-object","en"],["who","person","en"],["is","yes-no","en"],["are","yes-no","en"],["do","yes-no","en"],["does","yes-no","en"],["can","yes-no","en"],["will","yes-no","en"],
  ["la gi","definition","vi"],["la ai","person","vi"],["tai sao","cause","vi"],["vi sao","cause","vi"],["o dau","location","vi"],["khi nao","time","vi"],["bao nhieu","quantity","vi"],["the nao","method-or-process","vi"],["lam sao","method-or-process","vi"],["co phai","yes-no","vi"],["ai","person","vi"],["cai gi","definition-or-object","vi"],["gi","definition-or-object","vi"],
- ["qué es","definition","es"],["que es","definition","es"],["quién","person","es"],["quien","person","es"],["por qué","cause","es"],["porque","cause","es"],["dónde","location","es"],["donde","location","es"],["cuándo","time","es"],["cuando","time","es"],["cuántos","quantity","es"],["cuantos","quantity","es"],["cómo","method-or-process","es"],["como","method-or-process","es"],["qué","definition-or-object","es"],["que","definition-or-object","es"],
+ ["qué es","definition","es"],["que es","definition","es"],["quién","person","es"],["quien","person","es"],["por qué","cause","es"],["por que","cause","es"],["porque","cause","es"],["dónde","location","es"],["donde","location","es"],["cuándo","time","es"],["cuando","time","es"],["cuántos","quantity","es"],["cuantos","quantity","es"],["cómo","method-or-process","es"],["como","method-or-process","es"],["qué","definition-or-object","es"],["que","definition-or-object","es"],
  ["qu'est-ce que","definition","fr"],["qui","person","fr"],["pourquoi","cause","fr"],["où","location","fr"],["ou","location","fr"],["quand","time","fr"],["combien","quantity","fr"],["comment","method-or-process","fr"],["est-ce que","yes-no","fr"],["quoi","definition-or-object","fr"],
  ["was ist","definition","de"],["wer","person","de"],["warum","cause","de"],["wo","location","de"],["wann","time","de"],["wie viele","quantity","de"],["wie viel","quantity","de"],["wie","method-or-process","de"],["was","definition-or-object","de"],["ist","yes-no","de"],
  ["o que é","definition","pt"],["o que e","definition","pt"],["quem","person","pt"],["por que","cause","pt"],["onde","location","pt"],["quando","time","pt"],["quantos","quantity","pt"],["como","method-or-process","pt"],["é","yes-no","pt"],["e","yes-no","pt"],
@@ -164,7 +164,7 @@ export function registerLanguagePack(pack){
   if(ALLOWED_ACTS.has(act))ACT_PATTERNS[act].push(...list(terms));
  }
  for(const item of Array.isArray(pack.questions)?pack.questions:[]){
-  if(item&&ALLOWED_QUESTION_TYPES.has(item.type)&&String(item.phrase||"").trim())QUESTION_PREFIXES.push([String(item.phrase),item.type,code]);
+  if(item&&ALLOWED_QUESTION_TYPES.has(item.type)&&String(item.phrase||"").trim())QUESTION_PREFIXES.push([fold(String(item.phrase)),item.type,code]);
  }
  QUESTION_PREFIXES.sort((a,b)=>b[0].length-a[0].length);
  return {language:code,cues:LANGUAGE_CUES[code].length,questionPatterns:(pack.questions||[]).length,registered:true};
