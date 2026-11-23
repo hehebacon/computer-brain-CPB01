@@ -146,3 +146,24 @@ test("public social search links are generated locally without a proxy call",()=
  assert.ok(links.every(link=>link.url.startsWith("https://")));
  assert.ok(links.some(link=>link.name==="Reddit public search"));
 });
+
+
+test("confirmed task failure lowers both Bond and internal agent state",()=>{
+ const h=new HumanCognitiveSystems();
+ h.bond.recordOutcome({success:true,at:Date.UTC(2026,2,1,12)});
+ const before=h.bond.snapshot().score;
+ const result=h.recordTaskOutcome(false,2);
+ assert.ok(result.bond.score<before);
+ assert.ok(result.bond.trustDebt>0);
+ assert.equal(result.agentAffect.mode,"Sai sót cần khắc phục");
+ assert.equal(result.adaptation,"cautious");
+});
+
+test("confirmed task success only adds a capped trust increment",()=>{
+ const h=new HumanCognitiveSystems();
+ h.recordTaskOutcome(true,1);
+ const before=h.bond.snapshot().score;
+ const result=h.recordTaskOutcome(true,1);
+ assert.equal(result.bond.score-before,1);
+ assert.ok(h.bond.snapshot().dailyGain<=2);
+});
