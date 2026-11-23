@@ -56,7 +56,7 @@ test("stores a statement but does not store a question as a fact",()=>{
  const core=new CognitiveCore(memory);
  const before=memory.semantic.length;
  const result=core.process("Sao Mộc là hành tinh",null);
- assert.match(result.text,/ghi nhận dữ kiện/i);
+ assert.match(result.text,/đã lưu dữ kiện/i);
  assert.equal(memory.semantic.some(f=>f.subject==="Sao Mộc"&&f.object==="hành tinh"),true);
  const question=core.process("Sao Mộc là gì?",null);
  assert.equal(question.trace.find(x=>x.stage==="intent-classification").intent,"question-definition");
