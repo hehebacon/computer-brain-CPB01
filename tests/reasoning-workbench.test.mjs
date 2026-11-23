@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { AffectiveState, BondTrustModel, HumanCognitiveSystems } from "../human-cognitive-systems.js";
 import { CognitiveCore, CognitiveMemory } from "../cognitive-core.js";
 import { ReasoningEngine } from "../reasoning-engine.js";
-import { buildSandboxDocument, createCodeMarkdown, CODE_LIMITS } from "../code-workbench.js";
+import { buildSandboxDocument, buildWorkerSource, createCodeMarkdown, renderMarkdownPreview, CodeWorkbench, CODE_TEMPLATES, CODE_LIMITS } from "../code-workbench.js";
 
 test("mood recovers from elapsed wall-clock time without neutral messages",()=>{
  const now=Date.now(),mood=new AffectiveState({score:80,lastUpdatedAt:now});
@@ -66,12 +66,46 @@ test("Markdown code artifact uses a safe fence around embedded backticks",()=>{
  assert.ok(markdown.includes(tick.repeat(4)+"javascript"));
 });
 
-test("sandbox document applies restrictive CSP and size limit",()=>{
- const html=buildSandboxDocument("<html><head></head><body><h1>Hi</h1></body></html>");
+test("HTML preview strips active content and applies restrictive CSP",()=>{
+ const html=buildSandboxDocument("<html><head></head><body><h1 onclick='bad()'>Hi</h1><script>alert(1)</script><img src=x onerror='bad()'></body></html>");
  assert.match(html,/Content-Security-Policy/);
- assert.match(html,/connect-src 'none'/);
- assert.match(html,/cpb01-sandbox-ready/);
+ assert.match(html,/script-src 'none'/);
+ assert.doesNotMatch(html,/<script/i);
+ assert.doesNotMatch(html,/onclick|onerror/i);
+ assert.match(html,/<h1/);
  assert.throws(()=>buildSandboxDocument("x".repeat(CODE_LIMITS.maxBytes+1)),RangeError);
+});
+
+test("JavaScript worker source disables common network and persistence APIs",()=>{
+ const source=buildWorkerSource("return 6 * 7;");
+ assert.match(source,/globalThis,'fetch'/);
+ assert.match(source,/XMLHttpRequest/);
+ assert.match(source,/indexedDB/);
+ assert.match(source,/__run\(\)/);
+});
+
+test("Markdown preview escapes raw HTML and renders fenced code",()=>{
+ const fence=String.fromCharCode(96).repeat(3);
+ const markdown=["# Demo","","<script>alert(1)</script>","",fence+"js","const answer = 42;",fence].join("\n");
+ const html=renderMarkdownPreview(markdown);
+ assert.match(html,/<h1>Demo<\/h1>/);
+ assert.doesNotMatch(html,/<script>alert/);
+ assert.match(html,/tok-keyword/);
+});
+
+test("code templates and worker runner return output and enforce timeout",async()=>{
+ assert.ok(CODE_TEMPLATES["html-starter"]);
+ let terminated=false;
+ const fake={postMessage(){queueMicrotask(()=>this.onmessage({data:{type:"cpb01-result",ok:true,result:"42",logs:""}}));},terminate(){terminated=true;}};
+ const wb=new CodeWorkbench({workerFactory:()=>fake});
+ const result=await wb.runJavaScript("return 42;",{timeoutMs:500});
+ assert.equal(result.result,"42");
+ assert.equal(terminated,true);
+ let timeoutTerminated=false;
+ const slow=new CodeWorkbench({workerFactory:()=>({postMessage(){},terminate(){timeoutTerminated=true;}})});
+ const timed=await slow.runJavaScript("while(true){}",{timeoutMs:250});
+ assert.equal(timed.timedOut,true);
+ assert.equal(timeoutTerminated,true);
 });
 
 test("end-to-end cognitive loop stores, retrieves, infers, and tracks user feedback",()=>{
