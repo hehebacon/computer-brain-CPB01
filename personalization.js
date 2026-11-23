@@ -37,10 +37,12 @@ export class PersonalizationModel{
   else if(/(?:tra loi|reply|respond).{0,20}(?:bang tieng viet|in vietnamese)/.test(q))next.language="vi";
   return this.setPreferences(next);
  }
- adaptText(text){
+ adaptText(text,context={}){
   let output=String(text??"");
   if(this.preferences.tone==="formal")output=output.replace(/\bTui\b/g,"Tôi").replace(/\bông\b/g,"bạn");
   else if(this.preferences.tone==="casual")output=output.replace(/\bTôi\b/g,"Tui");
+  if(context.mode==="supportive"&&Number(context.confidence)<0.65)output="Tui sẽ trình bày từng bước, không kết luận vội nhé.\n"+output;
+  else if(context.mode==="clarifying"&&Number(context.confidence)<0.6)output+="\nÔng có thể nói rõ đối tượng hoặc phạm vi câu hỏi để tui trả lời chính xác hơn.";
   return output;
  }
  snapshot(){return {preferences:{...this.preferences},updatedAt:this.updatedAt,source:this.source,meaning:"Các lựa chọn trình bày do người dùng cung cấp; không phải hồ sơ tâm lý hay suy đoán thuộc tính nhạy cảm."};}
