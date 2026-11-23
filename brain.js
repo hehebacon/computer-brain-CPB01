@@ -24,7 +24,7 @@ import { CognitiveCore, CognitiveMemory } from "./cognitive-core.js";
   respond,
   analyze(text){state.lastRepresentation=analyzeText(text);return state.lastRepresentation;},
   async processFile(file){const result=await analyzeFile(file);state.lastRepresentation=result;return result;},
-  stats(){return {turns:state.turns,facts:memory.semantic.length,episodes:memory.episodes.length,concepts:memory.concepts.size,reasoningCycles:core.cycle,familiarity:core.hcs.familiarity.snapshot(),...inputEngineStats(),lastInputKind:state.lastRepresentation?state.lastRepresentation.kind:null};},
+  stats(){return {turns:state.turns,facts:memory.semantic.length,episodes:memory.episodes.length,concepts:memory.concepts.size,reasoningCycles:core.cycle,familiarity:core.hcs.familiarity.snapshot(),lastCognitiveProfile:core.lastHCS,...inputEngineStats(),lastInputKind:state.lastRepresentation?state.lastRepresentation.kind:null};},
   lastInput(){return state.lastRepresentation;},
   recall(query){return memory.recall(query);},
   registerAdapter:registerInputAdapter,
