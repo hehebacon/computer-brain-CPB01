@@ -12,7 +12,17 @@ const scripts=[
  {language:"ko",script:"Hangul",pattern:/[\uac00-\ud7af]/},
  {language:"ru",script:"Cyrillic",pattern:/[\u0400-\u04ff]/},
  {language:"ar",script:"Arabic",pattern:/[\u0600-\u06ff]/},
- {language:"hi",script:"Devanagari",pattern:/[\u0900-\u097f]/}
+ {language:"hi",script:"Devanagari",pattern:/[\u0900-\u097f]/},
+ {language:"bn",script:"Bengali",pattern:/[\u0980-\u09ff]/},
+ {language:"ta",script:"Tamil",pattern:/[\u0b80-\u0bff]/},
+ {language:"te",script:"Telugu",pattern:/[\u0c00-\u0c7f]/},
+ {language:"el",script:"Greek",pattern:/[\u0370-\u03ff]/},
+ {language:"he",script:"Hebrew",pattern:/[\u0590-\u05ff]/},
+ {language:"th",script:"Thai",pattern:/[\u0e00-\u0e7f]/},
+ {language:"km",script:"Khmer",pattern:/[\u1780-\u17ff]/},
+ {language:"am",script:"Ethiopic",pattern:/[\u1200-\u137f]/},
+ {language:"hy",script:"Armenian",pattern:/[\u0530-\u058f]/},
+ {language:"ka",script:"Georgian",pattern:/[\u10a0-\u10ff]/}
 ];
 const LANGUAGE_CUES={
  vi:["toi","tui","ban","minh","khong","nhung","duoc","la gi","cam on"],
@@ -136,6 +146,29 @@ const ACT_PATTERNS={
  request:["hay","lam on","vui long","please","giup tui","giup toi","por favor","s'il vous plaît","bitte","per favore","お願いします","请","해주세요","пожалуйста"],
  disagreement:["khong dong y","toi khong dong y","sai roi","i disagree","no estoy de acuerdo","je ne suis pas d'accord","ich stimme nicht zu","não concordo","non sono d'accordo","反対","동의하지 않","не согласен"]
 };
+const ALLOWED_QUESTION_TYPES=new Set(["definition","person","cause","location","time","quantity","method-or-process","yes-no","general","definition-or-object"]);
+const ALLOWED_ACTS=new Set(["greeting","thanks","apology","request","disagreement"]);
+export function registerLanguagePack(pack){
+ if(!pack||typeof pack!=="object")throw new TypeError("Language pack must be an object");
+ const code=String(pack.code||"").toLowerCase();
+ if(!/^[a-z][a-z0-9-]{1,11}$/.test(code))throw new TypeError("Language pack needs a short language code");
+ const list=value=>Array.isArray(value)?value.map(x=>String(x).trim()).filter(Boolean):[];
+ LANGUAGE_CUES[code]=list(pack.cues);
+ for(const [emotion,terms] of Object.entries(pack.emotions||{})){
+  if(!Object.hasOwn(EMOTION_LEXICON,emotion))continue;
+  EMOTION_LEXICON[emotion].push(...list(terms));
+ }
+ PRAISE.push(...list(pack.praise));
+ INSULTS.push(...list(pack.insults));
+ for(const [act,terms] of Object.entries(pack.dialogueActs||{})){
+  if(ALLOWED_ACTS.has(act))ACT_PATTERNS[act].push(...list(terms));
+ }
+ for(const item of Array.isArray(pack.questions)?pack.questions:[]){
+  if(item&&ALLOWED_QUESTION_TYPES.has(item.type)&&String(item.phrase||"").trim())QUESTION_PREFIXES.push([String(item.phrase),item.type,code]);
+ }
+ QUESTION_PREFIXES.sort((a,b)=>b[0].length-a[0].length);
+ return {language:code,cues:LANGUAGE_CUES[code].length,questionPatterns:(pack.questions||[]).length,registered:true};
+}
 export function classifyDialogueAct(input){
  const q=fold(input);
  for(const [act,terms] of Object.entries(ACT_PATTERNS))if(terms.some(t=>hasPhrase(q,t)))return act;
