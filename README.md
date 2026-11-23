@@ -209,11 +209,18 @@ reasoning-engine.js adds bounded and inspectable reasoning primitives:
 
 ## Local Code Workbench and sandbox
 
-code-workbench.js creates Markdown code artifacts with language fences and a browser-only HTML preview sandbox.
-- The preview runs in an iframe with sandbox="allow-scripts" and no same-origin permission.
-- A restrictive Content Security Policy blocks network connections, external resources, forms, nested frames, and navigation. The source is capped at 160 KB.
-- The preview has a configurable 250–8000 ms parent-side timeout. Browser timers are best-effort; this is not a hard CPU quota or a substitute for a disposable OS/container sandbox. Do not run untrusted code or upload secrets into the preview.
-- HTML is executable in the preview. JavaScript, CSS, and Python can be documented as Markdown; they are not run by this HTML preview. No shell commands, package installation, filesystem, or host OS access are exposed.
+code-workbench.js creates Markdown artifacts, a rendered Markdown preview, syntax-highlighted code blocks, and starter templates for HTML, JavaScript, Python, CSS, and README files.
+
+- HTML preview is static-only. Script elements, inline event handlers, embedded frames, forms, and other active content are stripped; the iframe uses an opaque sandbox and restrictive CSP. It does not execute uploaded HTML scripts.
+- JavaScript snippets run in a DOM-less Web Worker. Common network and persistence APIs (fetch, XMLHttpRequest, WebSocket, IndexedDB, etc.) are disabled; console output is capped and the Worker is terminated after a configurable 250–8000 ms timeout.
+- Python is formatted and previewed as Markdown only; no Python runtime is bundled. CSS can be previewed inside a static HTML shell.
+- This is a browser-level execution boundary, not a hardened operating-system/container sandbox. Do not use it as a substitute for reviewing untrusted code, and do not paste secrets into snippets. No shell, package installation, or host filesystem access is provided.
+
+## Direct search without Worker or model tokens
+
+direct-search.js offers an optional browser-side adapter for Wikipedia's public MediaWiki search API. It requires no Cloudflare Worker, API key, or language-model call, and reports zero model-token usage. Search requests still leave the browser and go to Wikipedia; this is not offline search and the provider can apply its own rate limits.
+
+Public social-search links for Reddit, YouTube, X, Threads, and TikTok are constructed locally. They open each platform's public search page; they do not scrape content or access private posts, accounts, or messages. The separate Brave-backed Cloudflare Worker remains an optional broader web/social search route and may have provider usage costs. A Worker proxy itself does not consume model tokens; only a separate model API call would.
 
 ## End-to-end validation
 
