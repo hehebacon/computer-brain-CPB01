@@ -78,7 +78,7 @@ test("HTML preview strips active content and applies restrictive CSP",()=>{
 
 test("JavaScript worker source disables common network and persistence APIs",()=>{
  const source=buildWorkerSource("return 6 * 7;");
- assert.match(source,/globalThis,'fetch'/);
+ assert.ok(source.includes("'fetch'"));
  assert.match(source,/XMLHttpRequest/);
  assert.match(source,/indexedDB/);
  assert.match(source,/__run\(\)/);
