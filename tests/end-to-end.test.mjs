@@ -70,10 +70,10 @@ test("CognitiveCore persists rule-based reasoning provenance into a question pat
  const memory=new CognitiveMemory();
  const core=new CognitiveCore(memory);
  memory.learn("Milo","là","chó","user-stated",0.8);
- core.registerRule({id:"dog-is-mammal",if:{subject:"chó",relation:"là",object:"động vật có vú"},then:{subject:"mammal",relation:"unknown",object:"unknown"}});
+ core.registerRule({id:"dog-is-mammal",if:{subject:"Milo",relation:"là",object:"chó"},then:{subject:"Milo",relation:"là",object:"động vật có vú"},confidence:0.85});
  const savedRules=core.reasoner.export();
  assert.equal(savedRules.length,1);
- assert.equal(core.reason("Milo").facts[0].subject,"Milo");
+ assert.ok(core.reason("Milo").facts.some(f=>f.derived&&f.object==="động vật có vú"));
 });
 
 test("Markdown workbench emits fenced source and escaped highlighted preview",()=>{
