@@ -27,7 +27,7 @@ import { registerLanguagePack } from "./human-cognitive-systems.js";
   async processFile(file){const result=await analyzeFile(file);state.lastRepresentation=result;return result;},
   stats(){return {turns:state.turns,facts:memory.semantic.length,episodes:memory.episodes.length,concepts:memory.concepts.size,reasoningCycles:core.cycle,familiarity:core.hcs.familiarity.snapshot(),affect:core.hcs.affect.snapshot(),lastCognitiveProfile:core.lastHCS,...inputEngineStats(),lastInputKind:state.lastRepresentation?state.lastRepresentation.kind:null};},
   setAffect(score){const value=core.hcs.setAffect(score);save();return value;},
-  resetAffect(){const value=core.hcs.setAffect(0);save();return value;},
+  resetAffect(){const value=core.hcs.resetAffect();save();return value;},
   registerLanguagePack(pack){return registerLanguagePack(pack)},
   lastInput(){return state.lastRepresentation;},
   recall(query){return memory.recall(query);},
