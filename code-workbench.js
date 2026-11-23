@@ -11,7 +11,7 @@ export function createCodeMarkdown({title="Code sample",language="text",code="",
 }
 export const CODE_TEMPLATES=Object.freeze({
  "html-starter":{filename:"index.html",language:"html",code:"<!doctype html>\n<html lang=\"vi\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Trang mới</title>\n  <style>body{max-width:760px;margin:3rem auto;padding:1rem;font-family:system-ui,sans-serif}</style>\n</head>\n<body><main><h1>Xin chào!</h1><p>Bắt đầu xây dựng tại đây.</p></main></body>\n</html>"},
- "javascript-module":{filename:"app.js",language:"javascript",code:"/** Small, dependency-free module. */\nexport function main(input) {\n  if (input == null) throw new TypeError(\"input is required\");\n  return { ok: true, value: input };\n}\nconsole.log(main(\"CPB-01\"));"},
+ "javascript-module":{filename:"app.js",language:"javascript",code:"/** Small, dependency-free script for the local Worker sandbox. */\nfunction main(input) {\n  if (input == null) throw new TypeError(\"input is required\");\n  return { ok: true, value: input };\n}\nconsole.log(main(\"CPB-01\"));\nreturn main(\"CPB-01\");"},
  "python-script":{filename:"main.py",language:"python",code:"def main(value: str) -> dict[str, object]:\n    if not value:\n        raise ValueError(\"value must not be empty\")\n    return {\"ok\": True, \"value\": value}\n\nif __name__ == \"__main__\":\n    print(main(\"CPB-01\"))"},
  "css-theme":{filename:"styles.css",language:"css",code:":root {\n  color-scheme: dark;\n  font-family: system-ui, sans-serif;\n  --surface: #101827;\n  --text: #e7edf5;\n  --accent: #80d8c2;\n}\n.card {\n  padding: 1rem;\n  border: 1px solid var(--accent);\n  border-radius: 1rem;\n  background: var(--surface);\n  color: var(--text);\n}"},
  "readme":{filename:"README.md",language:"markdown",code:"# Project name\n\n## Purpose\nDescribe what the project does.\n\n## Getting started\n\n~~~bash\nnpm install\nnpm test\n~~~\n\n## Usage\nAdd a small example and document expected inputs/outputs.\n\n## Limitations\nList known constraints and safety notes."}
@@ -140,7 +140,7 @@ export class CodeWorkbench{
    let finished=false;
    const finish=result=>{if(finished)return;finished=true;clearTimeout(timer);try{worker.terminate();}catch{}try{revoke();}catch{}resolve(result);};
    const timer=setTimeout(()=>finish({ok:false,error:"Execution time limit reached ("+timeout+" ms). Worker terminated.",logs:"",timedOut:true}),timeout);
-   worker.onmessage=event=>{const data=event.data||{};if(data.type!=="cpb01-result")return;finish({ok:Boolean(data.ok),result:String(data.result||""),error:String(data.error||""),logs:String(data.logs||"").slice(0,CODE_LIMITS.maxOutputChars),timedOut:false});};
+   worker.onmessage=event=>{const data=event.data||{};if(data.type!=="cpb01-result")return;finish({ok:Boolean(data.ok),result:String(data.result??""),error:String(data.error||""),logs:String(data.logs||"").slice(0,CODE_LIMITS.maxOutputChars),timedOut:false});};
    worker.onerror=event=>finish({ok:false,error:String(event.message||"Sandbox worker error."),logs:"",timedOut:false});
    try{worker.postMessage({type:"cpb01-run"});}catch(error){finish({ok:false,error:String(error?.message||error),logs:"",timedOut:false});}
   });
