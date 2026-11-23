@@ -1,4 +1,4 @@
-/* CPB-01 Human Cognitive Systems (HCS) v0.3
+/* CPB-01 Human Cognitive Systems (HCS) v0.4
  * Multilingual text-signal estimates and a bounded, inspectable affect meter.
  * This models software state; it does not claim subjective feelings.
  */
@@ -304,12 +304,12 @@ export class AgentAffectModel{
   this.cycles=Number(data.cycles)||0;
   this.updatedAt=data.updatedAt||Date.now();
   this.lastUpdatedAt=Number(data.lastUpdatedAt||data.updatedAt)||Date.now();
-  this.halfLifeMs=2*60*60*1000;
+  this.halfLifeMs=90*60*1000;
   this.recover(Date.now());
  }
  recover(at=Date.now()){
   const elapsed=Math.max(0,Number(at)-this.lastUpdatedAt);
-  if(elapsed>0){this.score=Math.round(this.score*Math.pow(0.5,elapsed/this.halfLifeMs));if(Math.abs(this.score)<1)this.score=0;this.lastUpdatedAt=Number(at);}
+  if(elapsed>0){this.score=Math.round(this.score*Math.pow(0.5,elapsed/this.halfLifeMs));if(Math.abs(this.score)<=3)this.score=0;this.lastUpdatedAt=Number(at);}
   return this.score;
  }
  observeOutcome({confidence=0.2,isQuestion=false,hasEvidence=false,error=false}={},at=Date.now()){
