@@ -47,12 +47,15 @@ export function composeSearchAnswer(question,results=[],options={}){
   if(relevantFacts.length)text+="\n\nDữ kiện cục bộ liên quan ông từng lưu (chưa xác minh độc lập): "+relevantFacts.map(f=>f.subject+" "+f.relation+" "+f.object).join("; ")+".";
   text+="\n\nĐây là câu trả lời tạm thời dạng trích xuất từ snippet, chưa phải đọc toàn bộ trang. Hãy mở nguồn để kiểm tra chi tiết quan trọng.";
  }
- if(options.userAffect?.score<=-30&&language==="vi")text="Tui sẽ trình bày từng ý rõ ràng để ông dễ kiểm tra.\n"+text;
- if(prefs.examples==="always"&&!selected.some(r=>/ví dụ|vi du|example|for instance|por ejemplo/i.test(r.snippet)))text+="\n\nChưa thấy ví dụ minh họa rõ ràng trong các trích đoạn tìm được.";
  if(detail==="concise"&&selected.length>1){
   const first=selected[0];
   text=language==="en"?"Most relevant result: "+first.title+". "+first.snippet+"\n\nThis is a search excerpt, not a verified full-page answer.":"Kết quả liên quan nhất: "+first.title+". "+first.snippet+"\n\nĐây là trích đoạn tìm kiếm, chưa phải câu trả lời đã xác minh toàn trang.";
+  if(relevantFacts.length)text+="\n\nNgữ cảnh cục bộ đã lưu (chưa xác minh độc lập): "+relevantFacts.map(f=>f.subject+" "+f.relation+" "+f.object).join("; ")+".";
  }
+ if(options.userAffect?.score<=-30&&language==="vi")text="Tui sẽ trình bày từng ý rõ ràng để ông dễ kiểm tra.\n"+text;
+ if(prefs.examples==="always"&&!selected.some(r=>/ví dụ|vi du|example|for instance|por ejemplo/i.test(r.snippet)))text+="\n\nChưa thấy ví dụ minh họa rõ ràng trong các trích đoạn tìm được.";
+ if(prefs.tone==="formal"&&language==="vi")text=text.replace(/Tui/g,"Tôi").replace(/ông/giu,"bạn");
+ else if(prefs.tone==="casual"&&language==="vi")text=text.replace(/Tôi/g,"Tui");
  return {
   text,
   sources:selected,
