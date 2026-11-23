@@ -183,3 +183,20 @@ test("repeating the same correction within five minutes does not stack Bond or a
  assert.equal(secondOutcome.agentAffect.score,afterFirstAgent);
  assert.equal(secondOutcome.adaptation,"cautious");
 });
+
+
+test("IF/ELSE supports compound context conditions without treating missing fields as false",()=>{
+ const engine=new ReasoningEngine();
+ const decision=engine.decideIfElse({
+  if:{all:[{field:"score",op:"gt",value:5},{field:"ready",op:"eq",value:true}]},
+  then:"continue",
+  else:"stop"
+ },[],{score:9,ready:true});
+ assert.equal(decision.branch,"then");
+ const unknown=engine.decideIfElse({
+  if:{all:[{field:"score",op:"gt",value:5},{field:"ready",op:"eq",value:true}]},
+  then:"continue",
+  else:"stop"
+ },[],{score:9});
+ assert.equal(unknown.branch,"undetermined");
+});
