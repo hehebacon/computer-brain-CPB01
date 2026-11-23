@@ -179,3 +179,17 @@ test("CJK question prefixes are detected without spaces",()=>{
  assert.equal(classifyQuestion("どうして空は青いの？").type,"cause");
  assert.equal(classifyQuestion("什么是地球？").type,"definition");
 });
+
+
+test("user emotion estimate and CPB-01 internal affect are independent",()=>{
+ const h=new HumanCognitiveSystems();
+ const profile=h.process("Tui buồn quá");
+ const userScore=profile.userAffect.score;
+ const outcome=h.recordOutcome({confidence:1,question:profile.question});
+ assert.ok(userScore<0);
+ assert.ok(outcome.agentAffect.score>0);
+ assert.notEqual(outcome.agentAffect.score,userScore);
+ assert.equal(outcome.agentAffect.cycles,1);
+ assert.equal(h.export().userAffect.score,userScore);
+ assert.equal(h.export().agentAffect.score,outcome.agentAffect.score);
+});
