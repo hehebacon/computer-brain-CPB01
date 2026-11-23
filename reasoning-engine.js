@@ -144,7 +144,7 @@ export class ReasoningEngine{
   }
   const inferred=facts.some(f=>f.derived);
   const transitive=derived.filter(f=>f.source==="two-link-inference");
-  const baseConfidence=facts.length?Math.max(...facts.map(f=>Number(f.confidence)||0)):0;
+  const baseConfidence=derived.length?Math.max(...derived.map(f=>Number(f.confidence)||0)):facts.length?Math.max(...facts.map(f=>Number(f.confidence)||0)):0;
   const trace=[...chained.trace.filter(item=>facts.some(f=>f.derived&&key(f)===item.conclusion)),...transitive.map(f=>({rule:f.rule,premises:["stored-category-relations"],conclusion:key(f),confidence:f.confidence}))];
   const method=transitive.length?"direct-recall+two-link-inference":inferred?"direct-recall+rule-inference":"direct-recall";
   return {facts,conflicts,method,confidence:baseConfidence*(conflicts.length?0.65:1),trace};
