@@ -81,7 +81,7 @@ main{flex:1;display:flex;flex-direction:column;gap:16px;padding:22px 0}.intro,.c
 <html><head><meta charset="utf-8"><style>body{font:16px system-ui;padding:24px;background:#101827;color:#eaf2ff}h1{color:#77e0bd}</style></head><body><h1>CPB-01 Sandbox</h1><p>Thay đoạn code này để xem thử.</p></body></html></textarea>
  <label for="sandbox-timeout">Giới hạn thời gian Worker (ms, tối đa 8.000)</label><input class="panel-input" id="sandbox-timeout" type="number" min="250" max="8000" step="250" value="2500">
  <div class="fileline"><button class="secondary" id="make-markdown" type="button">Tạo Markdown</button><button class="secondary" id="run-sandbox" type="button">Chạy thử / xem trước</button></div>
- <p id="sandbox-status" aria-live="polite">Chạy trong iframe cách ly, không có quyền truy cập cùng nguồn hoặc mạng.</p>
+ <p id="sandbox-status" aria-live="polite">JavaScript: Web Worker không có DOM, giới hạn API mạng/lưu trữ và timeout. HTML/CSS: iframe sandbox chỉ xem tĩnh, không chạy script. Đây là lớp cách ly trình duyệt, không phải sandbox hệ điều hành.</p>
  <pre id="code-markdown" class="code-markdown">Markdown source sẽ xuất hiện tại đây.</pre>
  <div id="code-markdown-preview" class="markdown-preview" aria-label="Markdown preview">Markdown preview sẽ xuất hiện tại đây.</div>
  <pre id="code-run-output" class="code-markdown">Kết quả chạy JavaScript sẽ xuất hiện tại đây.</pre>
