@@ -63,3 +63,12 @@ test("concise answers retain supportive framing and stored context",()=>{
  assert.match(answer.text,/Tôi sẽ trình bày/);
  assert.match(answer.text,/Ngữ cảnh cục bộ đã lưu/);
 });
+
+
+test("clarifying and supportive phrasing also follows neutral tone",()=>{
+ const profile=new PersonalizationModel();
+ profile.setPreferences({tone:"neutral"});
+ const text=profile.adaptText("Chưa đủ dữ kiện.",{mode:"clarifying",confidence:0.2});
+ assert.match(text,/Bạn có thể nói rõ/);
+ assert.doesNotMatch(text,/Ông có thể/);
+});
