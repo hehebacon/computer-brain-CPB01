@@ -16,7 +16,7 @@ function allowedOrigin(origin,env){
 function cors(origin){
  return {
   "access-control-allow-origin":origin,
-  "access-control-allow-methods":"POST, OPTIONS",
+  "access-control-allow-methods":"GET, POST, OPTIONS",
   "access-control-allow-headers":"Content-Type",
   "access-control-max-age":"86400",
   "vary":"Origin"
@@ -53,8 +53,13 @@ export default {
   if(!env.BRAVE_SEARCH_API_KEY)return reply({error:"Search provider is not configured. Set BRAVE_SEARCH_API_KEY as a Worker secret."},503,cors(origin));
   const length=Number(request.headers.get("content-length")||0);
   if(length>12000)return reply({error:"Request body is too large."},413,cors(origin));
-  let body;
-  try{body=await request.json();}catch{return reply({error:"Request body must be valid JSON."},400,cors(origin));}
+  let rawBody,body;
+  try{rawBody=await request.text();if(rawBody.length>12000)return reply({error:"Request body is too large."},413,cors(origin));body=JSON.parse(rawBody);}catch{return reply({error:"Request body must be valid JSON."},400,cors(origin));}
+  if(env.SEARCH_RATE_LIMITER){
+   const key=request.headers.get("CF-Connecting-IP")||"anonymous";
+   const limit=await env.SEARCH_RATE_LIMITER.limit({key});
+   if(!limit.success)return reply({error:"Search rate limit reached. Please retry later."},429,cors(origin));
+  }
   const query=String(body.query||"").trim();
   const mode=body.mode==="social"?"social":"web";
   const count=Math.max(1,Math.min(8,Number(body.count)||6));
