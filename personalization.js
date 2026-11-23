@@ -41,8 +41,8 @@ export class PersonalizationModel{
   let output=String(text??"");
   if(context.mode==="supportive"&&Number(context.confidence)<0.65)output="Tui sẽ trình bày từng bước, không kết luận vội nhé.\n"+output;
   else if(context.mode==="clarifying"&&Number(context.confidence)<0.6)output+="\nÔng có thể nói rõ đối tượng hoặc phạm vi câu hỏi để tui trả lời chính xác hơn.";
-  else if(context.mode==="cautious"&&Number(context.confidence)<0.45)output="Mức chắc chắn của lượt xử lý này còn thấp; tui sẽ không khẳng định vượt quá dữ kiện hiện có.\n"+output;
-  if(this.preferences.tone==="formal"||this.preferences.tone==="neutral")output=output.replace(/\bTui\b/g,"Tôi").replace(/ông/giu,"bạn");
+  else if(context.mode==="cautious"&&Number(context.confidence)<0.45)output="Độ chắc chắn của lượt xử lý này còn thấp; tui sẽ không khẳng định vượt quá dữ kiện hiện có.\n"+output;
+  if(this.preferences.tone==="formal"||this.preferences.tone==="neutral")output=output.replace(/\bTui\b/g,"Tôi").replace(/ông/giu,match=>match[0]===match[0].toUpperCase()?"Bạn":"bạn");
   else if(this.preferences.tone==="casual")output=output.replace(/\bTôi\b/g,"Tui");
   return output;
  }
