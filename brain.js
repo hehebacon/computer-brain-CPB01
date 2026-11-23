@@ -1,7 +1,7 @@
 /* CPB-01 cognitive kernel: language interface + bounded cognitive core. */
 import { analyzeText, analyzeFile, inputEngineStats, registerInputAdapter, INPUT_ENGINE_VERSION } from "./input-engine.js";
 import { CognitiveCore, CognitiveMemory } from "./cognitive-core.js";
-import { registerLanguagePack } from "./human-cognitive-systems.js";
+import { registerLanguagePack, detectLanguageHint } from "./human-cognitive-systems.js";
 import { PersonalizationModel } from "./personalization.js";
 import { SearchClient } from "./search-client.js";
 import { composeSearchAnswer } from "./answer-synthesizer.js";
@@ -44,13 +44,14 @@ import { composeSearchAnswer } from "./answer-synthesizer.js";
   setPreferences(next){const value=personalization.setPreferences(next);save();return value;},
   configureSearch(endpoint){const value=searchClient.configure(endpoint);save();return value;},
   search(query,options={}){
-   const detected=core.lastHCS?.language?.language||"vi";
+   const detected=detectLanguageHint(query).language||core.lastHCS?.language?.language||"vi";
    const language=options.language||(["vi","en","es","fr","de","pt","it","ru","ar","zh","ja","ko","hi"].includes(detected)?detected:"vi");
    return searchClient.search(query,{...options,language});
   },
   answerWithSearch(query,results){
    const preferences=personalization.snapshot().preferences;
-   const language=preferences.language==="auto"?(core.lastHCS?.language?.language==="en"?"en":"vi"):preferences.language;
+   const detected=detectLanguageHint(query).language||core.lastHCS?.language?.language||"vi";
+   const language=preferences.language==="auto"?(detected==="en"?"en":"vi"):preferences.language;
    return composeSearchAnswer(query,results,{preferences:{...preferences,language},userAffect:core.hcs.affect.snapshot(),memoryFacts:memory.recall(query)});
   },
   registerLanguagePack(pack){return registerLanguagePack(pack)},
