@@ -245,6 +245,7 @@ export class HumanCognitiveSystems{
   return {emotion,question,dialogueAct,familiarity,affect,language,attention,selfMonitoring:{uncertainty:Math.max(0,1-Math.max(emotion.confidence,question.confidence)),needsClarification:question.isQuestion&&question.confidence<0.55}};
  }
  setAffect(score){return this.affect.set(score);}
+ resetAffect(){return this.affect.reset();}
  reset(){this.familiarity.reset();this.affect.reset();}
  export(){return {familiarity:this.familiarity.export(),affect:this.affect.export()};}
 }
