@@ -116,14 +116,30 @@ The design keeps capabilities bounded: no unrestricted self-modification, self-r
 
 Run all tests with `npm test`.
 
-## Human Cognitive Systems (HCS) v0.1
+## Human Cognitive Systems (HCS) v0.2
 
-The kernel now includes a separate, inspectable HCS layer:
-- Emotion Perception: heuristic multi-label estimates for joy, sadness, anger, fear, surprise, confusion, gratitude, and curiosity. Estimates include confidence, intensity, and an explicit uncertainty caveat.
-- Familiarity Model: counts local interaction turns, estimates a coarse familiarity tier, and tracks broad communication style. It does not represent affection, identity, or a real personal relationship.
-- Intent & Question Recognition: identifies question forms such as definition, cause, location, time, method, quantity, and yes/no.
-- Dialogue Act Recognition: greeting, thanks, apology, request, disagreement, question, or statement.
-- Attention Signals: extracts a small set of salient terms for the current turn.
-- Self-Monitoring: exposes uncertainty and clarification signals.
+The cognitive kernel now includes a broader, inspectable HCS layer:
 
-HCS state is persisted in the same browser-local memory record. All recognition is heuristic and language coverage is incomplete. Emotion estimates must not be treated as verified facts about a speaker. HCS is a functional software model, not evidence of consciousness or subjective feelings.
+- **Emotion cues:** heuristic signals for joy, sadness, anger, fear, surprise, confusion, gratitude, curiosity, compliments, and insults. Punctuation and phrase matching are only weak context clues; quotes, sarcasm, slang, and who a phrase refers to can still cause mistakes.
+- **Affective state meter:** a bounded score from -100 to +100. Zero is the neutral baseline. Positive and negative text cues move the score in either direction; later neutral turns gradually bring it back toward zero. The sidebar includes a manual slider and a reset-to-neutral control. This is a simulated software state, not a claim of subjective feeling.
+- **Question/dialogue recognition:** common question types and dialogue acts across a set of built-in languages.
+- **Language hints:** built-in lexical hints for Vietnamese, English, Spanish, French, German, Portuguese, Italian, Russian, Arabic, Chinese, Japanese, Korean, and Hindi. Script hints additionally cover Bengali, Tamil, Telugu, Greek, Hebrew, Thai, Khmer, Ethiopic, Armenian, and Georgian.
+- **Extensible language packs:** additional vocabulary, emotion cues, compliments, insults, question prefixes, and dialogue-act phrases can be registered at runtime.
+
+Example browser API:
+
+```js
+CPB01.setAffect(35);       // Manually set the simulated state.
+CPB01.resetAffect();       // Return the meter to neutral.
+CPB01.registerLanguagePack({
+  code: "xx",
+  cues: ["example-language-cue"],
+  emotions: { joy: ["example-positive-phrase"] },
+  praise: ["example-compliment"],
+  insults: ["example-insult"],
+  questions: [{ phrase: "example-why", type: "cause" }],
+  dialogueActs: { thanks: ["example-thanks"] }
+});
+```
+
+The familiarity model continues to count local interaction turns; it does not represent affection or a real relationship. HCS output includes confidence and uncertainty, but recognition remains heuristic. Script detection is not translation, and a list of language patterns does **not** mean the core can fully understand every language, dialect, or context. Full multilingual understanding needs substantially broader language resources and/or audited translation or language-model adapters. HCS is a functional software model, not evidence of consciousness or subjective feelings.
