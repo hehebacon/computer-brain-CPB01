@@ -167,3 +167,19 @@ test("confirmed task success only adds a capped trust increment",()=>{
  assert.equal(result.bond.score-before,1);
  assert.ok(h.bond.snapshot().dailyGain<=2);
 });
+
+
+test("repeating the same correction within five minutes does not stack Bond or agent mood penalties",()=>{
+ const h=new HumanCognitiveSystems();
+ const first=h.process("Sai rồi, câu trả lời không đúng");
+ const afterFirstBond=h.bond.snapshot();
+ const firstOutcome=h.recordOutcome({confidence:0.2,question:first.question});
+ const afterFirstAgent=firstOutcome.agentAffect.score;
+ const second=h.process("Sai rồi, câu trả lời không đúng");
+ assert.equal(second.bond.lastOutcome,"duplicate-correction");
+ const secondOutcome=h.recordOutcome({confidence:0.2,question:second.question});
+ assert.equal(secondOutcome.bond.score,afterFirstBond.score);
+ assert.equal(secondOutcome.bond.trustDebt,afterFirstBond.trustDebt);
+ assert.equal(secondOutcome.agentAffect.score,afterFirstAgent);
+ assert.equal(secondOutcome.adaptation,"cautious");
+});
