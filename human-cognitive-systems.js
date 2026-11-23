@@ -243,6 +243,13 @@ export class AgentAffectModel{
   this.lastState=certainty<0.3?"Thận trọng":isQuestion&&!hasEvidence?"Tò mò / tìm hiểu":certainty>=0.75?"Tập trung":"Ổn định";
   return this.snapshot();
  }
+ set(score){
+  this.score=Math.round(clamp(Number(score)||0,-100,100));
+  this.lastState="Điều chỉnh thủ công";
+  this.updatedAt=Date.now();
+  return this.snapshot();
+ }
+ reset(){this.score=0;this.lastState="Ổn định";this.updatedAt=Date.now();return this.snapshot();}
  snapshot(){
   return {
    score:this.score,minimum:-100,maximum:100,baseline:0,
@@ -288,6 +295,8 @@ export class HumanCognitiveSystems{
  }
  setAffect(score){return this.affect.set(score);}
  resetAffect(){return this.affect.reset();}
+ setAgentAffect(score){return this.agentAffect.set(score);}
+ resetAgentAffect(){return this.agentAffect.reset();}
  reset(){this.familiarity.reset();this.affect.reset();this.agentAffect=new AgentAffectModel();}
  export(){return {familiarity:this.familiarity.export(),affect:this.affect.export(),userAffect:this.affect.export(),agentAffect:this.agentAffect.export()};}
 }
