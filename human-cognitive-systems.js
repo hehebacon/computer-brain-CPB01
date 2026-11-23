@@ -120,8 +120,8 @@ const QUESTION_PREFIXES=[
  ["che cos'è","definition","it"],["che cosa è","definition","it"],["chi","person","it"],["perché","cause","it"],["perche","cause","it"],["dove","location","it"],["quando","time","it"],["quanti","quantity","it"],["come","method-or-process","it"],["cosa","definition-or-object","it"],
  ["что такое","definition","ru"],["кто","person","ru"],["почему","cause","ru"],["где","location","ru"],["когда","time","ru"],["сколько","quantity","ru"],["как","method-or-process","ru"],["что","definition-or-object","ru"],
  ["لماذا","cause","ar"],["أين","location","ar"],["اين","location","ar"],["متى","time","ar"],["كيف","method-or-process","ar"],["كم","quantity","ar"],["من","person","ar"],["ما هو","definition","ar"],["ما هي","definition","ar"],["ماذا","definition-or-object","ar"],["هل","yes-no","ar"],
- ["是什么","definition","zh"],["是谁","person","zh"],["为什么","cause","zh"],["哪里","location","zh"],["哪儿","location","zh"],["什么时候","time","zh"],["多少","quantity","zh"],["怎么","method-or-process","zh"],["什么","definition-or-object","zh"],["谁","person","zh"],["吗","yes-no","zh"],
- ["とは","definition","ja"],["は何","definition","ja"],["誰","person","ja"],["なぜ","cause","ja"],["どこ","location","ja"],["いつ","time","ja"],["いくつ","quantity","ja"],["どう","method-or-process","ja"],["何","definition-or-object","ja"],["ですか","yes-no","ja"],
+ ["什么是","definition","zh"],["是什么","definition","zh"],["是谁","person","zh"],["为什么","cause","zh"],["哪里","location","zh"],["哪儿","location","zh"],["什么时候","time","zh"],["多少","quantity","zh"],["怎么","method-or-process","zh"],["什么","definition-or-object","zh"],["谁","person","zh"],["吗","yes-no","zh"],
+ ["とは","definition","ja"],["は何","definition","ja"],["誰","person","ja"],["なぜ","cause","ja"],["どうして","cause","ja"],["どこ","location","ja"],["いつ","time","ja"],["いくつ","quantity","ja"],["どう","method-or-process","ja"],["何","definition-or-object","ja"],["ですか","yes-no","ja"],
  ["이란","definition","ko"],["누구","person","ko"],["왜","cause","ko"],["어디","location","ko"],["언제","time","ko"],["얼마나","quantity","ko"],["어떻게","method-or-process","ko"],["무엇","definition-or-object","ko"],["뭐","definition-or-object","ko"],["인가요","yes-no","ko"],
  ["क्या है","definition","hi"],["कौन","person","hi"],["क्यों","cause","hi"],["कहाँ","location","hi"],["कब","time","hi"],["कितना","quantity","hi"],["कैसे","method-or-process","hi"],["क्या","definition-or-object","hi"]
 ].sort((a,b)=>b[0].length-a[0].length);
@@ -129,7 +129,7 @@ export function classifyQuestion(input){
  const original=String(input??"").trim(),q=fold(original).replace(/^[^\p{L}\p{M}\p{N}]+/u,""),hint=detectLanguageHint(original);
  const definition=q.match(/^(.+?)\s+(?:la gi|la ai|la cai gi|la con gi)\??$/);
  if(definition)return {isQuestion:true,type:"definition",target:original.replace(/\s+(?:là gì|la gi|là ai|la ai|là cái gì|la cai gi|là con gì|la con gi)\s*\??$/i,"").trim(),language:"vi",confidence:0.94};
- const match=QUESTION_PREFIXES.find(([prefix])=>q===prefix||q.startsWith(prefix+" ")||q.startsWith(prefix+"?")||q.startsWith(prefix+"？"));
+ const match=QUESTION_PREFIXES.find(([prefix])=>q===prefix||q.startsWith(prefix+" ")||q.startsWith(prefix+"?")||q.startsWith(prefix+"？")||(/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]/.test(prefix)&&q.startsWith(prefix)));
  const hasQuestionMark=/[?？؟]$/.test(original);
  if(!match&&!hasQuestionMark)return {isQuestion:false,type:"none",target:null,language:hint.language,confidence:0.2};
  const type=match?.[1]||"general",prefix=match?.[0]||"";
