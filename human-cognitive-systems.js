@@ -7,8 +7,8 @@ const fold=s=>norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/�
 const words=s=>String(s).match(/[\p{L}\p{M}\p{N}_]+/gu)||[];
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
 const scripts=[
- {language:"zh",script:"Han",pattern:/[\u3400-\u9fff]/},
  {language:"ja",script:"Japanese",pattern:/[\u3040-\u30ff]/},
+ {language:"zh",script:"Han",pattern:/[\u3400-\u9fff]/},
  {language:"ko",script:"Hangul",pattern:/[\uac00-\ud7af]/},
  {language:"ru",script:"Cyrillic",pattern:/[\u0400-\u04ff]/},
  {language:"ar",script:"Arabic",pattern:/[\u0600-\u06ff]/},
@@ -122,8 +122,12 @@ export function classifyQuestion(input){
  const match=QUESTION_PREFIXES.find(([prefix])=>q===prefix||q.startsWith(prefix+" ")||q.startsWith(prefix+"?")||q.startsWith(prefix+"？"));
  const hasQuestionMark=/[?？؟]$/.test(original);
  if(!match&&!hasQuestionMark)return {isQuestion:false,type:"none",target:null,language:hint.language,confidence:0.2};
- const type=match?.[1]||"general";
- return {isQuestion:true,type,target:null,language:match?.[2]||hint.language,confidence:match?0.78:0.55};
+ const type=match?.[1]||"general",prefix=match?.[0]||"";
+ let target=null;
+ if(type==="definition"&&prefix){
+  target=original.replace(/^[^\p{L}\p{M}\p{N}]+/u,"").slice(prefix.length).replace(/^[\s:：,，]+/u,"").replace(/[?？؟!！.。]+$/u,"").trim()||null;
+ }
+ return {isQuestion:true,type,target,language:match?.[2]||hint.language,confidence:match?0.78:0.55};
 }
 const ACT_PATTERNS={
  greeting:["xin chao","chao","hello","hi","hey","hola","bonjour","guten tag","ciao","olá","こんにちは","你好","안녕하세요","привет","مرحبا","नमस्ते"],
