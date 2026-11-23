@@ -78,17 +78,29 @@ export class ReasoningEngine{
   if(facts.some(f=>factMatches(pattern,f)&&f.polarity===false))return "false";
   return "unknown";
  }
- usesContextCondition(condition){
-  if(Array.isArray(condition))return condition.some(item=>this.usesContextCondition(item));
-  if(!condition||typeof condition!=="object")return false;
-  if(condition.op&&condition.field)return true;
-  if(Array.isArray(condition.all))return condition.all.some(item=>this.usesContextCondition(item));
-  if(Array.isArray(condition.any))return condition.any.some(item=>this.usesContextCondition(item));
-  if(condition.not)return this.usesContextCondition(condition.not);
-  return false;
+ evaluateMixedCondition(condition,facts=[],context={}){
+  const normalize=value=>value===true||value==="true"?"true":value===false||value==="false"?"false":"unknown";
+  if(Array.isArray(condition))condition={all:condition};
+  if(!condition||typeof condition!=="object")return "unknown";
+  if(Array.isArray(condition.all)){
+   const values=condition.all.map(item=>this.evaluateMixedCondition(item,facts,context));
+   if(values.includes("false"))return "false";
+   return values.every(value=>value==="true")?"true":"unknown";
+  }
+  if(Array.isArray(condition.any)){
+   const values=condition.any.map(item=>this.evaluateMixedCondition(item,facts,context));
+   if(values.includes("true"))return "true";
+   return values.every(value=>value==="false")?"false":"unknown";
+  }
+  if(condition.not){
+   const value=this.evaluateMixedCondition(condition.not,facts,context);
+   return value==="true"?"false":value==="false"?"true":"unknown";
+  }
+  if(condition.op&&condition.field)return normalize(this.evaluateCondition(condition,context));
+  return this.evaluateFactCondition(condition,facts);
  }
  decideIfElse({if:condition,then:thenValue,else:elseValue},facts=[],context={}){
-  const status=this.usesContextCondition(condition)?this.evaluateCondition(condition,context):this.evaluateFactCondition(condition,facts);
+  const status=this.evaluateMixedCondition(condition,facts,context);
   if(status===true||status==="true")return {status:"true",branch:"then",value:thenValue,reason:"Condition has explicit supporting evidence."};
   if(status===false||status==="false")return {status:"false",branch:"else",value:elseValue,reason:"Condition has explicit contradictory evidence."};
   return {status:"unknown",branch:"undetermined",value:null,reason:"Missing evidence is not treated as false."};
