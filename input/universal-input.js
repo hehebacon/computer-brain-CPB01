@@ -4,7 +4,7 @@
   function parseText(text,format) {
     const result={format,valid:null,structure:null,diagnostics:[]};
     if(format==="json") {
-      try { const value=JSON.parse(text); result.valid=true; result.structure={kind:Array.isArray(value)?"array":typeof value, value}; }
+      try { const value=JSON.parse(text); result.valid=true; result.structure={kind:Array.isArray(value)?"array":(value===null?"null":typeof value), itemCount:Array.isArray(value)?value.length:undefined, keyCount:value && typeof value==="object" && !Array.isArray(value)?Object.keys(value).length:undefined}; }
       catch(e) { result.valid=false; result.diagnostics.push("JSON parse error: "+e.message); }
     } else if(format==="jsonl") {
       const lines=text.split("\n").filter(x=>x.trim()); let valid=0;
@@ -40,6 +40,7 @@
   }
   async function processFile(file) {
     const name=file.name||"unnamed";
+    if(file.size>25*1024*1024) return {ok:false,kind:"rejected",name,size:file.size,format:"unknown",family:"unknown",diagnostics:["File exceeds the current 25 MiB browser-ingestion limit."]};
     const buffer=await file.arrayBuffer();
     const bytes=new Uint8Array(buffer);
     const head=Array.from(bytes.slice(0,12)).map(b=>b.toString(16).padStart(2,"0")).join(" ");
@@ -51,7 +52,7 @@
     const decoded=window.CPBInput.decodeBuffer(buffer);
     const looksText=bytes.length===0 || bytes.slice(0,Math.min(bytes.length,4096)).every(b=>b===9||b===10||b===13||b>=32);
     const detection=window.CPBInput.detectFormat(decoded.text,name);
-    const format=signature==="zip-container"?(name.toLowerCase().endsWith(".docx")?"docx":"archive"):signature||detection.format;
+    const format=signature==="zip-container"?(name.toLowerCase().endsWith(".docx")?"docx":name.toLowerCase().endsWith(".odt")?"odt":"archive"):signature||detection.format;
     if(textFormats.has(format) || (!signature && looksText && detection.family==="text")) {
       return processText(decoded.text,{name,size:file.size,encoding:decoded.encoding});
     }
