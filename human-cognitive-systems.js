@@ -193,32 +193,84 @@ export class AffectiveState{
   this.score=Math.round(clamp(Number(data.score)||0,-100,100));
   this.lastEmotion=data.lastEmotion||"undetermined";
   this.lastSignal=data.lastSignal||"neutral";
-  this.updatedAt=data.updatedAt||Date.now();
+  this.updatedAt=Number(data.updatedAt)||Date.now();
+  this.lastUpdatedAt=Number(data.lastUpdatedAt)||this.updatedAt;
   this.source=data.source||"baseline";
+  this.halfLifeMs=90*60*1000;
  }
- observe(input,emotion=recognizeEmotion(input)){
+ decay(now=Date.now()){
+  const current=Number(now)||Date.now(),elapsed=Math.max(0,current-this.lastUpdatedAt);
+  if(elapsed>0){
+   this.score*=Math.pow(0.5,elapsed/this.halfLifeMs);
+   if(Math.abs(this.score)<3)this.score=0;
+   this.score=Math.round(this.score*100)/100;
+   this.lastUpdatedAt=current;this.updatedAt=current;
+   if(this.score===0)this.lastSignal="time-decayed-to-neutral";
+  }
+  return this.score;
+ }
+ observe(input,emotion=recognizeEmotion(input),now=Date.now()){
+  this.decay(now);
   const previous=Number(this.score)||0;
   const delta=Math.round(emotion.valence*(10+emotion.intensity*18));
   const next=clamp(previous*0.84+delta,-100,100);
   this.score=Math.abs(next)<3?0:Math.round(next);
   this.lastEmotion=emotion.primary;
   this.lastSignal=emotion.praiseDetected?"compliment":emotion.insultDetected?"insult":emotion.primary;
-  this.updatedAt=Date.now();
-  this.source="text-estimate";
-  return this.snapshot();
+  this.updatedAt=now;this.lastUpdatedAt=now;this.source="text-estimate";
+  return this.snapshot(now);
  }
- set(score){
+ set(score,now=Date.now()){
   this.score=Math.round(clamp(Number(score)||0,-100,100));
-  this.updatedAt=Date.now();this.source="manual-adjustment";
-  this.lastSignal="manual";
-  return this.snapshot();
+  this.updatedAt=now;this.lastUpdatedAt=now;this.source="manual-adjustment";this.lastSignal="manual";
+  return this.snapshot(now);
  }
- reset(){this.score=0;this.lastEmotion="undetermined";this.lastSignal="neutral";this.source="baseline";this.updatedAt=Date.now();return this.snapshot();}
- snapshot(){
+ reset(now=Date.now()){
+  this.score=0;this.lastEmotion="undetermined";this.lastSignal="neutral";this.source="baseline";
+  this.updatedAt=now;this.lastUpdatedAt=now;return this.snapshot(now);
+ }
+ snapshot(now=Date.now()){
+  this.decay(now);
   const score=this.score;
-  return {score,minimum:-100,maximum:100,baseline:0,percentFromBaseline:score,label:affectLabel(score,this.lastEmotion),direction:score>0?"positive":score<0?"negative":"neutral",lastEmotion:this.lastEmotion,lastSignal:this.lastSignal,source:this.source,updatedAt:this.updatedAt,meaning:"Điểm trạng thái cảm xúc mô phỏng từ tín hiệu văn bản hoặc điều chỉnh thủ công; không phải cảm xúc chủ quan."};
+  return {score,minimum:-100,maximum:100,baseline:0,percentFromBaseline:score,label:affectLabel(score,this.lastEmotion),direction:score>0?"positive":score<0?"negative":"neutral",lastEmotion:this.lastEmotion,lastSignal:this.lastSignal,source:this.source,updatedAt:this.updatedAt,lastUpdatedAt:this.lastUpdatedAt,halfLifeMinutes:90,meaning:"Điểm trạng thái cảm xúc mô phỏng từ tín hiệu văn bản; tự hồi phục theo thời gian với chu kỳ bán rã 90 phút. Không phải cảm xúc chủ quan."};
  }
- export(){return {score:this.score,lastEmotion:this.lastEmotion,lastSignal:this.lastSignal,updatedAt:this.updatedAt,source:this.source};}
+ export(){this.decay();return {score:this.score,lastEmotion:this.lastEmotion,lastSignal:this.lastSignal,updatedAt:this.updatedAt,lastUpdatedAt:this.lastUpdatedAt,source:this.source};}
+}
+const BOND_CORRECTIONS=["sai roi","ban noi sai","tra loi sai","khong dung","chua dung","not correct","incorrect","wrong answer","you are wrong","that is wrong","this is wrong","you made a mistake","that's incorrect","no es correcto","te has equivocado","c'est faux","ce n'est pas correct","das ist falsch","du liegst falsch","não está correto","isso está errado","non è corretto","это неверно","неправильно","هذا غير صحيح","यह गलत है"];
+export class BondModel{
+ constructor(data={}){
+  this.score=Math.max(0,Number(data.score)||0);this.trustDebt=Math.max(0,Number(data.trustDebt)||0);
+  this.positiveDays=Math.max(0,Number(data.positiveDays)||0);this.lastPositiveDay=Number(data.lastPositiveDay)||null;
+  this.lastOutcome=data.lastOutcome||"new";this.corrections=Math.max(0,Number(data.corrections)||0);
+  this.lastCorrectionKey=data.lastCorrectionKey||"";this.lastCorrectionAt=Number(data.lastCorrectionAt)||0;
+  this.lastUpdatedAt=Number(data.lastUpdatedAt)||Date.now();
+ }
+ observe(input,emotion=recognizeEmotion(input),now=Date.now()){
+  const text=fold(input);
+  const correction=BOND_CORRECTIONS.some(term=>text.includes(fold(term)));
+  if(correction){
+   const key=text.slice(0,180);
+   if(key!==this.lastCorrectionKey||now-this.lastCorrectionAt>5*60*1000){
+    const loss=this.score>0?Math.max(0.5,this.score*0.2):0;
+    this.score=Math.max(0,this.score-loss);this.trustDebt=Math.min(Number.MAX_SAFE_INTEGER,this.trustDebt+1);
+    this.corrections++;this.lastCorrectionKey=key;this.lastCorrectionAt=now;this.lastOutcome="correction";
+   }
+  }else if(emotion.praiseDetected||classifyDialogueAct(input)==="thanks"){
+   const day=Math.floor(now/86400000);
+   if(day!==this.lastPositiveDay){
+    this.positiveDays=this.lastPositiveDay!==null&&day-this.lastPositiveDay===1?this.positiveDays+1:1;
+    const gain=1+Math.min(2,this.positiveDays*0.1);
+    this.score=Math.min(Number.MAX_SAFE_INTEGER,this.score+gain);this.trustDebt=Math.max(0,this.trustDebt-0.1);
+    this.lastPositiveDay=day;this.lastOutcome="positive-feedback";
+   }
+  }
+  this.lastUpdatedAt=now;return this.snapshot();
+ }
+ snapshot(){
+  const score=this.score,level=score>=100?"well-established":score>=30?"established":score>=7?"building":"new";
+  return {score,minimum:0,maximum:null,unbounded:true,level,positiveDays:this.positiveDays,trustDebt:Number(this.trustDebt.toFixed(2)),corrections:this.corrections,lastOutcome:this.lastOutcome,lastUpdatedAt:this.lastUpdatedAt,meaning:"Chỉ số tin cậy/tính quen thuộc dài hạn của tương tác. Tăng rất chậm theo phản hồi tích cực rõ ràng ở các ngày khác nhau; bị giảm mạnh hơn khi người dùng chỉ ra lỗi. Không biểu thị tình cảm hay sự gắn bó thật."};
+ }
+ export(){return {score:this.score,trustDebt:this.trustDebt,positiveDays:this.positiveDays,lastPositiveDay:this.lastPositiveDay,lastOutcome:this.lastOutcome,corrections:this.corrections,lastCorrectionKey:this.lastCorrectionKey,lastCorrectionAt:this.lastCorrectionAt,lastUpdatedAt:this.lastUpdatedAt};}
 }
 export class AgentAffectModel{
  constructor(data={}){
