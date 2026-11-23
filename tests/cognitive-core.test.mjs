@@ -106,6 +106,8 @@ test("HCS detects praise and insults as separate sentiment signals",()=>{
  const insult=recognizeEmotion("You are useless!");
  assert.equal(insult.insultDetected,true);
  assert.ok(insult.valence<0);
+ assert.ok(recognizeEmotion("I am not happy").valence<0);
+ assert.ok(recognizeEmotion("Tui không vui").valence<0);
 });
 
 test("affect meter rises, falls toward neutral, and supports bounded manual adjustment",()=>{
