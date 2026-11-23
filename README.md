@@ -191,3 +191,30 @@ Search sends the typed query to the external search provider. Do not put passwor
 ### Current capability limits
 
 CPB-01 remains a deterministic prototype. Its search answerer is extractive/rule-based: it ranks snippets and summarizes the evidence available in those snippets. It does not independently verify source accuracy, resolve contradictions reliably, translate every language, or understand every social post. Important answers should be checked against the linked source pages. Neither affect model establishes consciousness or real subjective feelings.
+
+## HCS v0.4 — elapsed-time mood and long-term trust
+
+- Short-term user affect and internal agent mood recover using elapsed wall-clock time, not only the arrival of neutral messages. The prototype uses a two-hour half-life for internal mood and a shorter affect half-life; an eight-hour pause should leave the short-term score near neutral.
+- The lastUpdatedAt timestamp is persisted with the state. Recovery is calculated lazily on the next read or interaction using Date.now().
+- Trust / Bond is a separate, non-negative reliability metric. Positive feedback and confirmed successful outcomes add small increments with a daily cap; explicit corrections or failed outcomes reduce it more sharply. It is a product-quality signal, not affection, friendship, or a real relationship.
+- Repeated identical corrections within a short window are deduplicated to avoid punishing one correction multiple times.
+
+## Symbolic Reasoning Engine
+
+reasoning-engine.js adds bounded and inspectable reasoning primitives:
+- Explicit IF/ELSE branch evaluation with a small allowlist of comparison operators; no eval().
+- Forward chaining from stored facts and registered rules, with maximum depth and fact-count limits.
+- Definition inference across stored category relations, provenance, confidence reduction, and contradiction detection.
+- This is symbolic rule execution, not open-ended human reasoning. A wrong premise can still produce a wrong conclusion, so derived results remain labeled and confidence-aware.
+
+## Local Code Workbench and sandbox
+
+code-workbench.js creates Markdown code artifacts with language fences and a browser-only HTML preview sandbox.
+- The preview runs in an iframe with sandbox="allow-scripts" and no same-origin permission.
+- A restrictive Content Security Policy blocks network connections, external resources, forms, nested frames, and navigation. The source is capped at 160 KB.
+- The preview has a configurable 250–8000 ms parent-side timeout. Browser timers are best-effort; this is not a hard CPU quota or a substitute for a disposable OS/container sandbox. Do not run untrusted code or upload secrets into the preview.
+- HTML is executable in the preview. JavaScript, CSS, and Python can be documented as Markdown; they are not run by this HTML preview. No shell commands, package installation, filesystem, or host OS access are exposed.
+
+## End-to-end validation
+
+Run npm test and bash build.sh. The added tests/reasoning-workbench.test.mjs covers time-based recovery, trust updates, IF/ELSE and forward chaining, contradiction detection, Markdown generation, sandbox policy/size limits, and a complete cognitive memory-to-inference flow.
