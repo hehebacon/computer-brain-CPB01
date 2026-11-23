@@ -99,6 +99,6 @@ export class CognitiveCore {
  }
  registerRule(rule){return this.reasoner.addRule(rule);}
  reason(subject){return this.reasoner.inferDefinition(this.memory,subject);}
- decideIfElse(decision){return this.reasoner.decideIfElse(decision,this.memory.semantic);}
+ decideIfElse(decision,context={}){return this.reasoner.decideIfElse(decision,this.memory.semantic,context);}
  runReasoning(){return this.reasoner.forwardChain(this.memory.semantic);}
 }
