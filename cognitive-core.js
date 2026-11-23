@@ -3,6 +3,7 @@
  * A bounded symbolic prototype; not human-level cognition.
  */
 import { HumanCognitiveSystems, classifyQuestion } from "./human-cognitive-systems.js";
+import { ReasoningEngine } from "./reasoning-engine.js";
 const norm=s=>String(s??"").normalize("NFC").toLocaleLowerCase("vi").trim();
 const fold=s=>norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
 const words=s=>(String(s).match(/[\p{L}\p{M}\p{N}_]+/gu)||[]);
@@ -57,11 +58,11 @@ function extractTeach(text){
  return null;
 }
 function questionSubject(text){const m=fold(text).match(/^(.+?)\s+(?:la gi|la ai|la cai gi|la con gi)\??$/i);return m?text.trim().replace(/[?？]+$/,"").replace(/\s+(?:là gì|la gi|là ai|la ai|là cái gì|la cai gi|là con gì|la con gi)\s*$/i,"").trim():null;}
-function infer(memory,subject){const direct=memory.semantic.filter(f=>fold(f.subject)===fold(subject));const derived=[];for(const a of direct.filter(f=>fold(f.relation)==="la"))for(const b of memory.semantic){if(fold(a.object)===fold(b.subject)&&fold(b.relation)==="thuoc nhom")derived.push({subject:a.subject,relation:"có quan hệ suy ra là",object:b.object,source:"two-link-inference",confidence:Math.min(a.confidence,b.confidence)*0.8});}if(direct.length||derived.length){const facts=[...direct,...derived];return {facts,method:derived.length?"direct-recall+two-link-inference":"direct-recall",confidence:derived.length?Math.max(...derived.map(f=>f.confidence)):Math.max(...direct.map(f=>f.confidence))};}return {facts:[],method:"no-evidence",confidence:0};}
+function infer(memory,subject,reasoner=new ReasoningEngine()){return reasoner.inferDefinition(memory,subject);}
 
 export class CognitiveCore {
  constructor(memory=new CognitiveMemory(),hcsData={}){
-  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.lastHCS=null;
+  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.reasoner=new ReasoningEngine();this.lastHCS=null;
   // Small, explicit baseline knowledge; provenance remains visible and distinct from user input.
   if(!this.memory.semantic.some(f=>fold(f.subject)==="trai dat"&&f.source==="builtin-knowledge")){
    this.memory.learn("Trái Đất","là","hành tinh","builtin-knowledge",0.99);
@@ -84,8 +85,8 @@ export class CognitiveCore {
   }
   if(intent.intent==="calculation"){const math=raw.replace(/^(tính|tinh|calculate|what is)\s+/i,"").replace(/[?？]+$/,"");try{const result=calculate(math);trace.push({stage:"reasoning",method:"arithmetic-expression-parser",result});return {text:"Kết quả: "+result,trace,confidence:1};}catch(e){return {text:"Tui chưa tính được biểu thức này: "+e.message,trace,confidence:0};}}
   if(intent.intent==="question-definition"){
-   const result=infer(this.memory,intent.subject);const facts=result.facts;
-   trace.push({stage:"memory-retrieval",matches:facts.length},{stage:"reasoning",method:result.method,confidence:result.confidence});
+   const result=infer(this.memory,intent.subject,this.reasoner);const facts=result.facts;
+   trace.push({stage:"memory-retrieval",matches:facts.length},{stage:"reasoning",method:result.method,confidence:result.confidence,conflicts:result.conflicts.length,inferenceTrace:result.trace});
    if(facts.length){const lines=facts.map(f=>f.subject+" "+f.relation+" "+f.object+".");const sources=[...new Set(facts.map(f=>f.source))];const note=sources.includes("user-stated")?" Có dữ kiện do người dùng cung cấp, chưa được xác minh.":sources.includes("builtin-knowledge")?" Dựa trên tri thức nền được đóng gói trong nguyên mẫu.":"";return {text:lines.join("\n")+note+(result.method.includes("two-link-inference")?" Đây là suy luận từ hai quan hệ đã lưu, chưa phải xác minh thực tế.":""),trace,confidence:result.confidence};}
    return {text:"Tui chưa có đủ dữ kiện để định nghĩa “"+intent.subject+"”. Tui sẽ không tự bịa câu trả lời.",trace,confidence:0};
   }
