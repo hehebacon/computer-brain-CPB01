@@ -12,7 +12,7 @@ function overlap(query,result){
  return {matched,score:q.length?matched.length/q.length:0};
 }
 function safeUrl(raw){
- try{const u=new URL(raw);return u.protocol==="https:"?u.href:null;}catch{return null;}
+ try{const u=new URL(raw);if(u.protocol!=="https:"||u.username||u.password||["localhost","127.0.0.1","::1"].includes(u.hostname))return null;return u.href;}catch{return null;}
 }
 export function composeSearchAnswer(question,results=[],options={}){
  const prefs=options.preferences||{},facts=Array.isArray(options.memoryFacts)?options.memoryFacts:[];
@@ -46,6 +46,7 @@ export function composeSearchAnswer(question,results=[],options={}){
   text+="\n\nĐây là tổng hợp từ trích đoạn tìm kiếm, chưa phải đọc toàn bộ trang. Hãy mở nguồn để kiểm tra chi tiết quan trọng.";
  }
  if(options.userAffect?.score<=-30&&language==="vi")text="Tui sẽ trình bày từng ý rõ ràng để ông dễ kiểm tra.\n"+text;
+ if(prefs.examples==="always"&&!selected.some(r=>/ví dụ|vi du|example|for instance|por ejemplo/i.test(r.snippet)))text+="\n\nChưa thấy ví dụ minh họa rõ ràng trong các trích đoạn tìm được.";
  if(detail==="concise"&&selected.length>1){
   const first=selected[0];
   text=language==="en"?"Most relevant result: "+first.title+". "+first.snippet+"\n\nThis is a search excerpt, not a verified full-page answer.":"Kết quả liên quan nhất: "+first.title+". "+first.snippet+"\n\nĐây là trích đoạn tìm kiếm, chưa phải câu trả lời đã xác minh toàn trang.";
@@ -54,7 +55,7 @@ export function composeSearchAnswer(question,results=[],options={}){
   text,
   sources:selected,
   reasoning:{method:"query-term-overlap-ranking",candidateCount:ranked.length,selectedCount:selected.length,averageLexicalCoverage:Number(evidenceCoverage.toFixed(3)),sharedQueryTerms:[...shared],localMemoryFactsUsed:relevantFacts.length,limitations:["Chỉ sử dụng tiêu đề và trích đoạn do công cụ tìm kiếm trả về.","Độ trùng từ không chứng minh tính đúng hoặc sự đồng thuận của các nguồn.","Không tự động truy cập nội dung riêng tư hoặc toàn bộ trang."]},
-  evidenceConfidence:ranked.length>=3&&evidenceCoverage>=0.4?"moderate":"low",
+  searchCoverage:ranked.length>=3&&evidenceCoverage>=0.4?"moderate":"low",
   personalization:{detail,tone:prefs.tone||"casual",language,examples:prefs.examples||"when-useful"}
  };
 }
