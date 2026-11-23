@@ -202,7 +202,7 @@ export class AffectiveState{
   const elapsed=Math.max(0,Number(at)-this.lastUpdatedAt);
   if(elapsed>0){
    this.score=Math.round(this.score*Math.pow(0.5,elapsed/this.halfLifeMs));
-   if(Math.abs(this.score)<3)this.score=0;
+   if(Math.abs(this.score)<=3)this.score=0;
    this.lastUpdatedAt=Number(at);
   }
   return this.score;
