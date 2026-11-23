@@ -33,17 +33,19 @@ export function composeSearchAnswer(question,results=[],options={}){
  if(!selected.length){
   text=language==="en"?"No relevant public search results were returned. Try a more specific query or check that the search Worker is configured.":"Chưa có kết quả công khai phù hợp. Ông thử cụ thể hóa câu hỏi hoặc kiểm tra cấu hình Search Worker nhé.";
  }else if(language==="en"){
-  text="I found "+ranked.length+" public search result(s). Here are the most relevant excerpts, ranked by overlap with your question:";
-  if(shared.size)text+="\nThe first two results share these query terms: "+[...shared].slice(0,6).join(", ")+". This is lexical overlap, not proof that the sources agree.";
-  for(const r of selected)text+="\n\n• "+r.title+": "+(r.snippet||"No excerpt was provided.");
+  text="Provisional answer from the strongest match: "+(selected[0].snippet||"The top result has no excerpt.");
+  text+="\n\nSupporting public results ("+ranked.length+" total):";
+  if(shared.size)text+="\nThe first two results share query terms: "+[...shared].slice(0,6).join(", ")+". This is lexical overlap, not proof of agreement.";
+  for(const r of selected.slice(1))text+="\n\n• "+r.title+": "+(r.snippet||"No excerpt was provided.");
   if(relevantFacts.length)text+="\n\nRelated local facts you previously stored (not independently verified): "+relevantFacts.map(f=>f.subject+" "+f.relation+" "+f.object).join("; ")+".";
-  text+="\n\nThis is a synthesis of search snippets, not a full-page review. Open the cited sources before relying on important details.";
+  text+="\n\nThis is an extractive, provisional answer based on snippets, not a full-page review. Open the cited sources before relying on important details.";
  }else{
-  text="Tui tìm thấy "+ranked.length+" kết quả công khai. Đây là các trích đoạn liên quan nhất, xếp theo mức trùng khớp với câu hỏi:";
-  if(shared.size)text+="\nHai kết quả đầu cùng có các từ khóa: "+[...shared].slice(0,6).join(", ")+". Đây chỉ là độ trùng từ, chưa chứng minh hai nguồn đồng ý với nhau.";
-  for(const r of selected)text+="\n\n• "+r.title+": "+(r.snippet||"Nguồn không cung cấp trích đoạn.");
+  text="Tóm tắt tạm thời từ nguồn khớp nhất: "+(selected[0].snippet||"Nguồn đầu tiên không có trích đoạn.");
+  text+="\n\nCác nguồn công khai hỗ trợ ("+ranked.length+" kết quả):";
+  if(shared.size)text+="\nHai nguồn đầu cùng có từ khóa: "+[...shared].slice(0,6).join(", ")+". Đây là độ trùng từ, chưa chứng minh hai nguồn đồng ý với nhau.";
+  for(const r of selected.slice(1))text+="\n\n• "+r.title+": "+(r.snippet||"Nguồn không cung cấp trích đoạn.");
   if(relevantFacts.length)text+="\n\nDữ kiện cục bộ liên quan ông từng lưu (chưa xác minh độc lập): "+relevantFacts.map(f=>f.subject+" "+f.relation+" "+f.object).join("; ")+".";
-  text+="\n\nĐây là tổng hợp từ trích đoạn tìm kiếm, chưa phải đọc toàn bộ trang. Hãy mở nguồn để kiểm tra chi tiết quan trọng.";
+  text+="\n\nĐây là câu trả lời tạm thời dạng trích xuất từ snippet, chưa phải đọc toàn bộ trang. Hãy mở nguồn để kiểm tra chi tiết quan trọng.";
  }
  if(options.userAffect?.score<=-30&&language==="vi")text="Tui sẽ trình bày từng ý rõ ràng để ông dễ kiểm tra.\n"+text;
  if(prefs.examples==="always"&&!selected.some(r=>/ví dụ|vi du|example|for instance|por ejemplo/i.test(r.snippet)))text+="\n\nChưa thấy ví dụ minh họa rõ ràng trong các trích đoạn tìm được.";
