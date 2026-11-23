@@ -28,6 +28,16 @@ jobs:
           node --check universal-representation.js
       - name: Run regression tests
         run: npm test
+      - name: Check inline browser module syntax
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            const html = readFileSync("index.html", "utf8");
+            const blocks = [...html.matchAll(/<script type="module">([\\s\\S]*?)<\\/script>/g)];
+            if (!blocks.length) throw new Error("No inline module script found in index.html");
+            writeFileSync("/tmp/cpb01-index-inline-check.mjs", blocks[blocks.length - 1][1]);
+          '
+          node --check /tmp/cpb01-index-inline-check.mjs
       - name: Check build script syntax
         run: bash -n build.sh
       - name: Build static site
