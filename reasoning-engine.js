@@ -143,8 +143,11 @@ export class ReasoningEngine{
    if(alternatives.length)conflicts.push({fact,alternatives});
   }
   const inferred=facts.some(f=>f.derived);
+  const transitive=derived.filter(f=>f.source==="two-link-inference");
   const baseConfidence=facts.length?Math.max(...facts.map(f=>Number(f.confidence)||0)):0;
-  return {facts,conflicts,method:inferred?"direct-recall+rule-inference":"direct-recall",confidence:baseConfidence*(conflicts.length?0.65:1),trace:chained.trace.filter(item=>facts.some(f=>f.derived&&key(f)===item.conclusion))};
+  const trace=[...chained.trace.filter(item=>facts.some(f=>f.derived&&key(f)===item.conclusion)),...transitive.map(f=>({rule:f.rule,premises:["stored-category-relations"],conclusion:key(f),confidence:f.confidence}))];
+  const method=transitive.length?"direct-recall+two-link-inference":inferred?"direct-recall+rule-inference":"direct-recall";
+  return {facts,conflicts,method,confidence:baseConfidence*(conflicts.length?0.65:1),trace};
  }
  export(){return this.rules.map(r=>({id:r.id,when:r.when,then:r.then,confidence:r.confidence,label:r.label,description:r.description}));}
 }
