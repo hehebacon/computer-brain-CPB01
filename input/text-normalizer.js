@@ -14,7 +14,7 @@
   }
   function normalize(text) {
     const original=String(text);
-    const normalized=original.replace(/\r\n?/g,"\n").replace(/\u0000/g,"");
+    const normalized=original.replace(/\r\n?/g,"\n").replace(/\u0000/g,"").normalize("NFC");
     return {original,normalized,changed:original!==normalized,unicodeForm:"NFC"};
   }
   window.CPBInput=window.CPBInput||{};
