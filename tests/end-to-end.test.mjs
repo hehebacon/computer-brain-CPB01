@@ -21,6 +21,7 @@ test("internal agent mood also returns to neutral after an eight-hour pause",()=
  const start=Date.now();
  const mood=new AgentAffectModel({score:100,lastUpdatedAt:start});
  assert.equal(mood.snapshot(start+8*60*60*1000).score,0);
+ assert.equal(mood.snapshot(start+8*60*60*1000).mode,"Ổn định");
 });
 
 test("mood recovers independently from long-term bond",()=>{
