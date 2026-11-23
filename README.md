@@ -57,3 +57,28 @@ Facts are stored in this browser profile's localStorage. Uploaded files are proc
 
 ## Scope
 This is an experimental deterministic prototype, not human-like intelligence or AGI. Input classification and language detection are heuristic and can be wrong. Reasoning remains limited to explicitly implemented rules.
+
+
+## Universal Representation (UIR) v1.0
+
+All text and recognized binary-file paths now produce a versioned intermediate representation defined in `universal-representation.js`.
+
+Core fields:
+- `schema`, `id`, `createdAt`: schema identity and record identity.
+- `source`: source name, MIME type, extension, size, encoding, and modification time when available.
+- `content.raw` and `content.normalized`: preserve the original text alongside a normalized working copy.
+- `segments` and `tokens`: paragraph/sentence and Unicode-aware word spans with offsets into normalized content.
+- `language` and `scripts`: heuristic language/script observations with confidence, not guaranteed translation or understanding.
+- `structure`: format-specific attributes such as JSON root type, table preview, source-code language, or text counts. Common attributes remain at the top level for compatibility.
+- `interpretation`: explicitly separates syntactic analysis from semantic understanding. The current engine sets this to `not-performed`.
+- `provenance`: records processing stages and transformations.
+- `limitations` and `diagnostics`: make uncertainty and unsupported extraction visible.
+
+Binary formats receive the same outer schema but have null text content and an explicit adapter-required status until a decoder is installed. The representation is descriptive data, not proof that the Brain understands the input.
+
+Validate the schema and run regression tests with:
+
+```bash
+npm test
+bash build.sh
+```
