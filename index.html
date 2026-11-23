@@ -79,13 +79,13 @@ main{flex:1;display:flex;flex-direction:column;gap:16px;padding:22px 0}.intro,.c
  <label for="code-language">Ngôn ngữ</label><select class="panel-input" id="code-language"><option value="html">HTML</option><option value="javascript">JavaScript</option><option value="css">CSS</option><option value="python">Python (Markdown only)</option></select>
  <label for="code-source">Mã nguồn (JavaScript chạy trong Worker; HTML xem tĩnh)</label><textarea class="panel-input" id="code-source" rows="7" spellcheck="false"><!doctype html>
 <html><head><meta charset="utf-8"><style>body{font:16px system-ui;padding:24px;background:#101827;color:#eaf2ff}h1{color:#77e0bd}</style></head><body><h1>CPB-01 Sandbox</h1><p>Thay đoạn code này để xem thử.</p></body></html></textarea>
- <label for="sandbox-timeout">Giới hạn thời gian (ms, best-effort)</label><input class="panel-input" id="sandbox-timeout" type="number" min="250" max="8000" step="250" value="2500">
- <div class="fileline"><button class="secondary" id="make-markdown" type="button">Tạo Markdown</button><button class="secondary" id="run-sandbox" type="button">Chạy thử HTML</button></div>
+ <label for="sandbox-timeout">Giới hạn thời gian Worker (ms, tối đa 8.000)</label><input class="panel-input" id="sandbox-timeout" type="number" min="250" max="8000" step="250" value="2500">
+ <div class="fileline"><button class="secondary" id="make-markdown" type="button">Tạo Markdown</button><button class="secondary" id="run-sandbox" type="button">Chạy thử / xem trước</button></div>
  <p id="sandbox-status" aria-live="polite">Chạy trong iframe cách ly, không có quyền truy cập cùng nguồn hoặc mạng.</p>
  <pre id="code-markdown" class="code-markdown">Markdown source sẽ xuất hiện tại đây.</pre>
  <div id="code-markdown-preview" class="markdown-preview" aria-label="Markdown preview">Markdown preview sẽ xuất hiện tại đây.</div>
  <pre id="code-run-output" class="code-markdown">Kết quả chạy JavaScript sẽ xuất hiện tại đây.</pre>
- <iframe id="code-preview" title="CPB-01 HTML sandbox preview" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+ <iframe id="code-preview" title="CPB-01 static HTML sandbox preview" sandbox="" referrerpolicy="no-referrer"></iframe>
 </section>
 <h3 style="margin-top:20px">THỬ CÁC LỆNH</h3>
 <div class="examples"><button class="chip" data-msg="Bạn là ai?" type="button">Bạn là ai?</button><button class="chip" data-msg="Ghi nhớ: Trái Đất | là | hành tinh" type="button">Dạy dữ kiện</button><button class="chip" data-msg="Trái Đất là gì?" type="button">Truy vấn bộ nhớ</button><button class="chip" data-msg="tính 12 * 8" type="button">Tính toán</button><button class="chip" data-msg="Bạn có nhớ gì?" type="button">Xem bộ nhớ</button><button class="chip" data-msg="Hãy trả lời ngắn gọn" type="button">Đổi cách trả lời</button></div>
@@ -110,7 +110,7 @@ function stats(){
  const score=Number(a.score)||0,agentScore=Number(agent.score)||0,p=s.personalization?.preferences||{};
  const bond=s.bond||{score:0,successes:0,failures:0};
  document.getElementById("bond-score").textContent=String(Math.round(bond.score||0));
- document.getElementById("bond-summary").textContent="Thành công: "+bond.successes+" · Lỗi ghi nhận: "+bond.failures+" · Chỉ số vận hành, không phải tình cảm.";
+ document.getElementById("bond-summary").textContent="Mức: "+bond.level+" · Ngày tích cực: "+bond.positiveDays+" · Trust debt: "+bond.trustDebt+" · Thành công: "+bond.successes+" · Lỗi: "+bond.failures+". Chỉ số vận hành, không phải tình cảm.";
  document.getElementById("turns").textContent=s.turns;
  document.getElementById("facts").textContent=s.facts;
  document.getElementById("processed").textContent=s.processed;
