@@ -19,3 +19,37 @@ test("preserves raw text and identifies Vietnamese heuristically",()=>{
 test("recognizes PDF signature without claiming extraction",async()=>{
  const bytes=new Uint8Array([37,80,68,70,45,49,46,55]);const file=new Blob([bytes],{type:"application/pdf"});Object.defineProperty(file,"name",{value:"sample.pdf"});const r=await analyzeFile(file);assert.equal(r.detectedFormat,"pdf");assert.equal(r.status,"recognized-needs-adapter");
 });
+
+import { validateRepresentation, UIR_VERSION } from "../universal-representation.js";
+
+test("returns a valid versioned UIR with loss-aware normalization",()=>{
+ const raw="Xin chào\\r\\nThe sky is blue.";
+ const u=analyzeText(raw,"note.txt");
+ assert.equal(u.schema,UIR_VERSION);
+ assert.equal(u.content.raw,raw);
+ assert.equal(u.content.normalized,"Xin chào\\nThe sky is blue.");
+ assert.equal(validateRepresentation(u).valid,true);
+ assert.ok(u.tokens.length>0);
+ assert.ok(u.segments.length>0);
+});
+
+test("records that JSON parsing is structure analysis, not semantic understanding",()=>{
+ const u=analyzeText('{"name":"CPB","items":[1,2]}',"data.json");
+ assert.equal(u.format,"json");
+ assert.equal(u.structure.rootType,"object");
+ assert.equal(u.interpretation.status,"not-performed");
+ assert.equal(validateRepresentation(u).valid,true);
+});
+
+test("keeps uncertain language detection explicit",()=>{
+ const u=analyzeText("xyz qqq zzz","sample.txt");
+ assert.ok(u.language.confidence<=0.5);
+ assert.ok(u.limitations.length>0);
+});
+
+test("marks malformed JSON as partially understood",()=>{
+ const u=analyzeText('{"x":',"bad.json");
+ assert.equal(u.format,"json-invalid");
+ assert.equal(u.status,"partially-understood");
+ assert.equal(validateRepresentation(u).valid,true);
+});
