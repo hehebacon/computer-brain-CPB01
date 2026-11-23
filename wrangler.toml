@@ -1,0 +1,3 @@
+name = "cpb01-public-search"
+main = "worker/search-worker.js"
+compatibility_date = "2026-11-23"
