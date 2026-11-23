@@ -12,10 +12,10 @@ EOF
 }
 build() {
  echo "[CPB-01] Checking source files..."
- for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js; do
+ for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js; do
   if [[ ! -f "${ROOT_DIR}/${file}" ]]; then echo "[ERROR] Missing required file: ${file}" >&2; exit 1; fi
  done
- if ! grep -q 'input-engine.js' "${ROOT_DIR}/brain.js" || ! grep -q 'universal-representation.js' "${ROOT_DIR}/input-engine.js" || ! grep -q 'cognitive-core.js' "${ROOT_DIR}/brain.js"; then echo "[ERROR] Input engine dependency is missing" >&2; exit 1; fi
+ if ! grep -q 'input-engine.js' "${ROOT_DIR}/brain.js" || ! grep -q 'universal-representation.js' "${ROOT_DIR}/input-engine.js" || ! grep -q 'cognitive-core.js' "${ROOT_DIR}/brain.js" || ! grep -q 'human-cognitive-systems.js' "${ROOT_DIR}/cognitive-core.js"; then echo "[ERROR] Input engine dependency is missing" >&2; exit 1; fi
  rm -rf -- "${DIST_DIR}"
  mkdir -p -- "${DIST_DIR}"
  cp -- "${ROOT_DIR}/index.html" "${DIST_DIR}/index.html"
@@ -23,6 +23,7 @@ build() {
  cp -- "${ROOT_DIR}/input-engine.js" "${DIST_DIR}/input-engine.js"
  cp -- "${ROOT_DIR}/universal-representation.js" "${DIST_DIR}/universal-representation.js"
  cp -- "${ROOT_DIR}/cognitive-core.js" "${DIST_DIR}/cognitive-core.js"
+ cp -- "${ROOT_DIR}/human-cognitive-systems.js" "${DIST_DIR}/human-cognitive-systems.js"
  if [[ -f "${ROOT_DIR}/README.md" ]]; then cp -- "${ROOT_DIR}/README.md" "${DIST_DIR}/README.md"; fi
  echo "[CPB-01] Build complete. Output: ${DIST_DIR}"
 }
