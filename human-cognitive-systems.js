@@ -315,7 +315,7 @@ export class AgentAffectModel{
  observeOutcome({confidence=0.2,isQuestion=false,hasEvidence=false,error=false}={},at=Date.now()){
   this.recover(at);
   const certainty=clamp(Number(confidence)||0);
-  const delta=error?-22:(certainty>=0.75?8:certainty>=0.45?2:-7)+(isQuestion?3:0)+(hasEvidence?2:0);
+  const delta=error?-32:(certainty>=0.75?8:certainty>=0.45?2:-7)+(isQuestion?3:0)+(hasEvidence?2:0);
   const next=clamp(this.score*0.88+delta,-100,100);
   this.score=Math.abs(next)<3?0:Math.round(next);
   this.confidence=Math.round(this.confidence*0.65+certainty*100*0.35);
@@ -329,10 +329,10 @@ export class AgentAffectModel{
  set(score){
   this.score=Math.round(clamp(Number(score)||0,-100,100));
   this.lastState="Điều chỉnh thủ công";
-  this.updatedAt=Date.now();
-  return this.snapshot();
+  this.updatedAt=Date.now();this.lastUpdatedAt=this.updatedAt;
+  return this.snapshot(this.updatedAt);
  }
- reset(){this.score=0;this.lastState="Ổn định";this.updatedAt=Date.now();return this.snapshot();}
+ reset(){this.score=0;this.lastState="Ổn định";this.updatedAt=Date.now();this.lastUpdatedAt=this.updatedAt;return this.snapshot(this.updatedAt);}
  snapshot(at=Date.now()){
   this.recover(at);
   return {
