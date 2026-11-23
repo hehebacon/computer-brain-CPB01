@@ -27,7 +27,8 @@ import { composeSearchAnswer } from "./answer-synthesizer.js";
   const result=core.process(text,representation);
   const adaptation=core.hcs.recordOutcome({confidence:result.confidence,question:core.lastHCS?.question});
   if(preferenceUpdate.changed)result.text="Đã cập nhật cách trả lời: "+Object.entries(preferenceUpdate.changes).map(([k,v])=>k+" = "+v).join(", ")+".";
-  result.text=personalization.adaptText(result.text);
+  result.text=personalization.adaptText(result.text,{mode:adaptation.adaptation,confidence:result.confidence});
+  result.trace.push({stage:"agent-affect-adaptation",mode:adaptation.adaptation,agentState:adaptation.agentAffect.label,agentScore:adaptation.agentAffect.score});
   save();
   return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
  }
@@ -42,8 +43,16 @@ import { composeSearchAnswer } from "./answer-synthesizer.js";
   resetAgentAffect(){const value=core.hcs.resetAgentAffect();save();return value;},
   setPreferences(next){const value=personalization.setPreferences(next);save();return value;},
   configureSearch(endpoint){const value=searchClient.configure(endpoint);save();return value;},
-  search(query,options={}){return searchClient.search(query,options);},
-  answerWithSearch(query,results){return composeSearchAnswer(query,results,{preferences:personalization.snapshot().preferences,userAffect:core.hcs.affect.snapshot(),memoryFacts:memory.recall(query)});},
+  search(query,options={}){
+   const detected=core.lastHCS?.language?.language||"vi";
+   const language=options.language||(["vi","en","es","fr","de","pt","it","ru","ar","zh","ja","ko","hi"].includes(detected)?detected:"vi");
+   return searchClient.search(query,{...options,language});
+  },
+  answerWithSearch(query,results){
+   const preferences=personalization.snapshot().preferences;
+   const language=preferences.language==="auto"?(core.lastHCS?.language?.language==="en"?"en":"vi"):preferences.language;
+   return composeSearchAnswer(query,results,{preferences:{...preferences,language},userAffect:core.hcs.affect.snapshot(),memoryFacts:memory.recall(query)});
+  },
   registerLanguagePack(pack){return registerLanguagePack(pack)},
   lastInput(){return state.lastRepresentation;},
   recall(query){return memory.recall(query);},
