@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { AffectiveState, BondTrustModel, HumanCognitiveSystems, recognizeEmotion } from "../human-cognitive-systems.js";
+import { AffectiveState, AgentAffectModel, BondTrustModel, HumanCognitiveSystems, recognizeEmotion } from "../human-cognitive-systems.js";
 import { CognitiveCore, CognitiveMemory } from "../cognitive-core.js";
 import { ReasoningEngine } from "../reasoning-engine.js";
 import { CodeWorkbench, CODE_TEMPLATES, createCodeMarkdown, renderMarkdownPreview, buildSandboxDocument, buildWorkerSource } from "../code-workbench.js";
@@ -15,6 +15,12 @@ test("mood restores to neutral after an eight-hour tab sleep and persists its ti
  const afterSleep=mood.snapshot(start+8*60*60*1000);
  assert.equal(afterSleep.score,0);
  assert.equal(afterSleep.direction,"neutral");
+});
+
+test("internal agent mood also returns to neutral after an eight-hour pause",()=>{
+ const start=Date.now();
+ const mood=new AgentAffectModel({score:100,lastUpdatedAt:start});
+ assert.equal(mood.snapshot(start+8*60*60*1000).score,0);
 });
 
 test("mood recovers independently from long-term bond",()=>{
