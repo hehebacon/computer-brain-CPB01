@@ -32,7 +32,7 @@ function calculate(expression){const ts=tokenizeMath(expression);let i=0;const p
 export function classifyUtterance(input){
  const text=String(input??"").trim(),q=fold(text);
  if(!text)return {intent:"empty",confidence:1};
- if(/^(ghi nho|hay nho)\s*:/.test(q))return {intent:"teach",confidence:0.99,explicit:true};
+ if(/^(ghi nho|hay nho)\s*:/.test(q))return {intent:"teach",confidence:0.99,explicit:true,teach:extractTeach(text)};
  const subject=questionSubject(text);
  if(subject)return {intent:"question-definition",subject,confidence:0.94};
  if(/^(tinh|calculate|what is)\s+/.test(q))return {intent:"calculation",confidence:0.95};
