@@ -37,6 +37,12 @@ export class PersonalizationModel{
   else if(/(?:tra loi|reply|respond).{0,20}(?:bang tieng viet|in vietnamese)/.test(q))next.language="vi";
   return this.setPreferences(next);
  }
+ adaptText(text){
+  let output=String(text??"");
+  if(this.preferences.tone==="formal")output=output.replace(/\bTui\b/g,"Tôi").replace(/\bông\b/g,"bạn");
+  else if(this.preferences.tone==="casual")output=output.replace(/\bTôi\b/g,"Tui");
+  return output;
+ }
  snapshot(){return {preferences:{...this.preferences},updatedAt:this.updatedAt,source:this.source,meaning:"Các lựa chọn trình bày do người dùng cung cấp; không phải hồ sơ tâm lý hay suy đoán thuộc tính nhạy cảm."};}
  export(){return {preferences:{...this.preferences},updatedAt:this.updatedAt,source:this.source};}
 }
