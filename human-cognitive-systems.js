@@ -124,7 +124,7 @@ const QUESTION_PREFIXES=[
  ["とは","definition","ja"],["は何","definition","ja"],["誰","person","ja"],["なぜ","cause","ja"],["どうして","cause","ja"],["どこ","location","ja"],["いつ","time","ja"],["いくつ","quantity","ja"],["どう","method-or-process","ja"],["何","definition-or-object","ja"],["ですか","yes-no","ja"],
  ["이란","definition","ko"],["누구","person","ko"],["왜","cause","ko"],["어디","location","ko"],["언제","time","ko"],["얼마나","quantity","ko"],["어떻게","method-or-process","ko"],["무엇","definition-or-object","ko"],["뭐","definition-or-object","ko"],["인가요","yes-no","ko"],
  ["क्या है","definition","hi"],["कौन","person","hi"],["क्यों","cause","hi"],["कहाँ","location","hi"],["कब","time","hi"],["कितना","quantity","hi"],["कैसे","method-or-process","hi"],["क्या","definition-or-object","hi"]
-].sort((a,b)=>b[0].length-a[0].length);
+].map(([phrase,type,language])=>[fold(phrase),type,language]).sort((a,b)=>b[0].length-a[0].length);
 export function classifyQuestion(input){
  const original=String(input??"").trim(),q=fold(original).replace(/^[^\p{L}\p{M}\p{N}]+/u,""),hint=detectLanguageHint(original);
  const definition=q.match(/^(.+?)\s+(?:la gi|la ai|la cai gi|la con gi)\??$/);
