@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CognitiveCore, CognitiveMemory } from "../cognitive-core.js";
+import { HumanCognitiveSystems, recognizeEmotion, classifyQuestion, AffectiveState, detectLanguageHint, registerLanguagePack } from "../human-cognitive-systems.js";
 
 test("cognitive cycle stores and recalls user-provided facts",()=>{
  const core=new CognitiveCore(new CognitiveMemory());
@@ -63,7 +64,6 @@ test("stores a statement but does not store a question as a fact",()=>{
  assert.equal(memory.semantic.length,before+1);
 });
 
-import { HumanCognitiveSystems, recognizeEmotion, classifyQuestion, AffectiveState, detectLanguageHint, registerLanguagePack } from "../human-cognitive-systems.js";
 
 test("HCS recognizes emotional language as uncertain signals",()=>{
  const e=recognizeEmotion("Tui vui quá, tuyệt vời!");
@@ -123,16 +123,22 @@ test("affect meter rises, falls toward neutral, and supports bounded manual adju
  assert.ok(affect.snapshot().score>25);
  for(let i=0;i<30;i++)affect.observe("Hôm nay trời quang.");
  assert.equal(affect.snapshot().score,0);
+ for(let i=0;i<6;i++)affect.observe("You are useless!");
+ assert.ok(affect.snapshot().score<0);
+ assert.match(affect.snapshot().label,/Tức giận|Bực bội/);
 });
 
 test("HCS classifies common question patterns across supported languages",()=>{
  assert.equal(classifyQuestion("Why does Earth orbit the Sun?").type,"cause");
  assert.equal(classifyQuestion("¿Dónde está la estación?").type,"location");
+ assert.equal(classifyQuestion("¿Por qué está lloviendo?").type,"cause");
  assert.equal(classifyQuestion("Warum ist der Himmel blau?").type,"cause");
  assert.equal(classifyQuestion("为什么天空是蓝色的？").type,"cause");
  assert.equal(classifyQuestion("なぜ空は青いのですか？").type,"cause");
  assert.equal(classifyQuestion("왜 하늘은 파란가요?").type,"cause");
  assert.equal(detectLanguageHint("なぜ空は青いのですか？").language,"ja");
+ const spanish=new HumanCognitiveSystems().process("¿Dónde está la estación?");
+ assert.equal(spanish.language,"es");
 });
 
 test("cognitive intent pipeline recognizes multilingual questions without storing them as facts",()=>{
