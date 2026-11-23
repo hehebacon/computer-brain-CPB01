@@ -56,11 +56,9 @@ function extractTeach(text){
 function questionSubject(text){const m=text.match(/^(.+?)\s+(?:là gì|la gi|là ai|la ai)\??$/i);return m?m[1].trim():null;}
 function infer(memory,subject){
  const direct=memory.semantic.filter(f=>norm(f.subject)===norm(subject));
- if(direct.length)return {facts:direct,method:"direct-recall",confidence:Math.max(...direct.map(f=>f.confidence))};
- const first=memory.semantic.filter(f=>norm(f.subject)===norm(subject)&&norm(f.relation)==="là");
  const derived=[];
- for(const a of first)for(const b of memory.semantic){if(norm(a.object)===norm(b.subject)&&norm(b.relation)==="là")derived.push({subject:a.subject,relation:"có quan hệ suy ra là",object:b.object,source:"two-link-inference",confidence:Math.min(a.confidence,b.confidence)*0.8});}
- if(derived.length)return {facts:derived,method:"two-link-inference",confidence:Math.max(...derived.map(f=>f.confidence))};
+ for(const a of direct.filter(f=>norm(f.relation)==="là"))for(const b of memory.semantic){if(norm(a.object)===norm(b.subject)&&norm(b.relation)==="thuộc nhóm")derived.push({subject:a.subject,relation:"có quan hệ suy ra là",object:b.object,source:"two-link-inference",confidence:Math.min(a.confidence,b.confidence)*0.8});}
+ if(direct.length||derived.length){const facts=[...direct,...derived];return {facts,method:derived.length?"direct-recall+two-link-inference":"direct-recall",confidence:Math.max(...facts.map(f=>f.confidence))};}
  return {facts:[],method:"no-evidence",confidence:0};
 }
 export class CognitiveCore {
