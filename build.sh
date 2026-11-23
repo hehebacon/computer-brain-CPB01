@@ -36,6 +36,9 @@ build() {
 
   cp -- "${ROOT_DIR}/index.html" "${DIST_DIR}/index.html"
   cp -- "${ROOT_DIR}/brain.js" "${DIST_DIR}/brain.js"
+  if [[ -d "${ROOT_DIR}/input" ]]; then
+    cp -R -- "${ROOT_DIR}/input" "${DIST_DIR}/input"
+  fi
 
   if [[ -f "${ROOT_DIR}/README.md" ]]; then
     cp -- "${ROOT_DIR}/README.md" "${DIST_DIR}/README.md"
