@@ -17,6 +17,10 @@ jobs:
           node --check brain.js
           node --check cognitive-core.js
           node --check human-cognitive-systems.js
+          node --check personalization.js
+          node --check search-client.js
+          node --check answer-synthesizer.js
+          node --check worker/search-worker.js
           node --check input-engine.js
           node --check universal-representation.js
       - name: Run regression tests
@@ -30,5 +34,8 @@ jobs:
           test -f dist/brain.js
           test -f dist/cognitive-core.js
           test -f dist/human-cognitive-systems.js
+          test -f dist/personalization.js
+          test -f dist/search-client.js
+          test -f dist/answer-synthesizer.js
           test -f dist/input-engine.js
           test -f dist/universal-representation.js
