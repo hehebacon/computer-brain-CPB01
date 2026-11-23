@@ -5,7 +5,8 @@ import { registerLanguagePack, detectLanguageHint } from "./human-cognitive-syst
 import { PersonalizationModel } from "./personalization.js";
 import { SearchClient } from "./search-client.js";
 import { composeSearchAnswer } from "./answer-synthesizer.js";
-import { createCodeMarkdown, mountSandbox } from "./code-workbench.js";
+import { CodeWorkbench, createCodeMarkdown, renderMarkdownPreview, mountSandbox } from "./code-workbench.js";
+import { DirectSearchAdapter, buildPublicSearchLinks } from "./direct-search.js";
 (() => {
  const STORAGE_KEY="cpb01-cognitive-memory-v3";
  const memory=new CognitiveMemory();
@@ -17,10 +18,12 @@ import { createCodeMarkdown, mountSandbox } from "./code-workbench.js";
   else if(saved&&Array.isArray(saved.facts))for(const f of saved.facts)memory.learn(f.subject,f.relation,f.object,"legacy-memory",0.6);
   if(saved)state.turns=Number(saved.turns)||0;
  }catch{}
- const core=new CognitiveCore(memory,saved?.hcs||{});
+ const core=new CognitiveCore(memory,{...(saved?.hcs||{}),reasoningRules:saved?.reasoningRules||[]});
  const personalization=new PersonalizationModel(saved?.personalization||{});
  const searchClient=new SearchClient(saved?.search?.endpoint||"");
- function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({memory:memory.export(),turns:state.turns,hcs:core.hcs.export(),personalization:personalization.export(),search:{endpoint:searchClient.endpoint}}));}catch{}}
+ const directSearch=new DirectSearchAdapter();
+ const codeWorkbench=new CodeWorkbench();
+ function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({memory:memory.export(),turns:state.turns,hcs:core.hcs.export(),reasoningRules:core.reasoner.export(),personalization:personalization.export(),search:{endpoint:searchClient.endpoint}}));}catch{}}
  function respond(text){
   const representation=analyzeText(String(text??""));
   state.lastRepresentation=representation;state.turns++;
@@ -37,7 +40,7 @@ import { createCodeMarkdown, mountSandbox } from "./code-workbench.js";
   respond,
   analyze(text){state.lastRepresentation=analyzeText(text);return state.lastRepresentation;},
   async processFile(file){const result=await analyzeFile(file);state.lastRepresentation=result;return result;},
-  stats(){return {turns:state.turns,facts:memory.semantic.length,episodes:memory.episodes.length,concepts:memory.concepts.size,reasoningCycles:core.cycle,familiarity:core.hcs.familiarity.snapshot(),affect:core.hcs.affect.snapshot(),userAffect:core.hcs.affect.snapshot(),agentAffect:core.hcs.agentAffect.snapshot(),bond:core.hcs.bond.snapshot(),personalization:personalization.snapshot(),searchConfigured:searchClient.configured,searchEndpoint:searchClient.endpoint,lastCognitiveProfile:core.lastHCS,...inputEngineStats(),lastInputKind:state.lastRepresentation?state.lastRepresentation.kind:null};},
+  stats(){const userAffect=core.hcs.affect.snapshot(),agentAffect=core.hcs.agentAffect.snapshot(),result={turns:state.turns,facts:memory.semantic.length,episodes:memory.episodes.length,concepts:memory.concepts.size,reasoningCycles:core.cycle,reasoningRules:core.reasoner.rules.length,familiarity:core.hcs.familiarity.snapshot(),affect:userAffect,userAffect,agentAffect,bond:core.hcs.bond.snapshot(),personalization:personalization.snapshot(),searchConfigured:searchClient.configured,searchEndpoint:searchClient.endpoint,lastCognitiveProfile:core.lastHCS,...inputEngineStats(),lastInputKind:state.lastRepresentation?state.lastRepresentation.kind:null};save();return result;},
   setAffect(score){const value=core.hcs.setAffect(score);save();return value;},
   resetAffect(){const value=core.hcs.resetAffect();save();return value;},
   setAgentAffect(score){const value=core.hcs.setAgentAffect(score);save();return value;},
@@ -51,7 +54,17 @@ import { createCodeMarkdown, mountSandbox } from "./code-workbench.js";
    return searchClient.search(query,{...options,language});
   },
   createCodeMarkdown(options){return createCodeMarkdown(options);},
+  renderCodeMarkdown(markdown){return renderMarkdownPreview(markdown);},
+  getCodeTemplate(name){return codeWorkbench.template(name);},
+  runCode(source,options={}){return codeWorkbench.runJavaScript(source,options);},
   mountSandbox(options){return mountSandbox(options);},
+  searchDirect(query,options={}){return directSearch.search(query,options);},
+  buildSocialSearchLinks(query){return buildPublicSearchLinks(query);},
+  searchLocal(query,limit=8){return memory.recall(query,limit);},
+  registerRule(rule){const added=core.registerRule(rule);save();return added;},
+  reason(subject){return core.reason(subject);},
+  runReasoning(){return core.runReasoning();},
+  decideIfElse(decision){return core.decideIfElse(decision);},
   answerWithSearch(query,results){
    const preferences=personalization.snapshot().preferences;
    const detected=detectLanguageHint(query).language||core.lastHCS?.language?.language||"vi";
@@ -64,5 +77,5 @@ import { createCodeMarkdown, mountSandbox } from "./code-workbench.js";
   registerAdapter:registerInputAdapter,
   clear(){memory.clear();state.turns=0;core.cycle=0;core.hcs.reset();save();}
  };
- window.dispatchEvent(new CustomEvent("cpb01-ready",{detail:{inputEngineVersion:INPUT_ENGINE_VERSION,coreVersion:"0.3.0"}}));
+ window.dispatchEvent(new CustomEvent("cpb01-ready",{detail:{inputEngineVersion:INPUT_ENGINE_VERSION,coreVersion:"0.4.0"}}));
 })();
