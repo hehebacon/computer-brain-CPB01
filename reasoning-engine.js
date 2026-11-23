@@ -1,9 +1,9 @@
 /* CPB-01 bounded symbolic reasoning engine.
  * Transparent forward chaining and explicit condition evaluation; no eval() or hidden model calls.
  */
-const norm=value=>String(value??"").normalize("NFC").toLocaleLowerCase().trim();
+const norm=value=>String(value??"").normalize("NFC").toLocaleLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/đ/g,"d").trim();
 const key=f=>[f.subject,f.relation,f.object].map(norm).join("|");
-const MATCH_RELATIONS=new Set(["là","la","is-a","thuộc nhóm","thuoc nhom","belongs-to","thuộc","thuoc"]);
+const MATCH_RELATIONS=new Set(["la","is-a","thuoc nhom","belongs-to","thuoc"]);
 const clamp01=n=>Math.max(0,Math.min(1,Number(n)||0));
 
 export class ReasoningEngine{
