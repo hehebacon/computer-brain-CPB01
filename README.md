@@ -1,95 +1,59 @@
 # CPB-01 — Independent Brain
 
-CPB-01 is an experimental deterministic symbolic-computation prototype with a browser chat interface and a modular AllPlus input-ingestion pipeline.
+CPB-01 is a local-first deterministic cognitive-system prototype. It does not use an LLM, hosted AI model, AI API, or network request to generate responses.
 
-## Scope and honest limitations
+## AllPlus input architecture (v0.2)
 
-- The current kernel and input pipeline use local JavaScript; no LLM, hosted AI model, or AI API generates replies.
-- Input auto-detection covers common text formats, source-code extensions, and selected binary signatures.
-- Text decoding supports UTF-8 and UTF-16 BOMs. Text normalization preserves the raw input in the processing result and produces an NFC-normalized representation.
-- JSON is parsed with the native JSON parser. XML/SVG use the browser DOM parser when available. CSV/TSV handling is lightweight and does not implement the full quoted-field specification.
-- PDF, DOCX, images, audio, video, and archive files can be identified, but their content is **not yet extracted**. Dedicated PDF/OOXML, OCR/vision, speech-recognition, and video adapters are future work. The system reports this limitation rather than claiming it read the file.
-- Automatic language identification is not yet a full multilingual NLP system. Unicode normalization does not translate text or guarantee correct interpretation.
-- This is an early engineering prototype, not human-like intelligence or AGI.
+The Universal Input Engine automatically classifies text and files. It creates a Universal Input Representation (schema cpb01.uir/1), preserving the original source and reporting uncertainty and limitations.
 
-## Run
+### Core recognition and extraction
+- Natural text: raw text preservation, NFC-normalized companion text, approximate word/sentence/paragraph counts, script and heuristic language hints.
+- Structured text: JSON parsing, basic XML/HTML structural detection, Markdown structure detection, CSV/TSV row parsing.
+- Source code: extension/signature heuristics and basic source metrics; not a compiler or security analyzer.
+- Images: PNG, JPEG, GIF, WebP signature recognition and image dimensions where browser decoding is available.
+- Audio: WAV, MP3, OGG recognition and browser-readable media metadata.
+- Video: MP4 recognition and browser-readable media metadata.
+- Documents: PDF and DOCX/XLSX/PPTX container recognition.
 
-Open `index.html` in a modern browser, or run:
+### Capability boundary
+Recognition is not semantic understanding. The core does not yet perform OCR/visual interpretation, speech-to-text, video scene understanding, PDF text extraction, or Office document extraction. Those require explicit adapters registered through CPB01.registerAdapter(type, handler). Missing adapters are reported as recognized-needs-adapter; the engine never claims to have read content it did not extract. Archive contents are not executed or automatically unpacked.
 
-```bash
-bash build.sh
-python3 -m http.server 8000 -d dist
-```
+Reserved adapter types:
+- image-ocr-or-vision
+- audio-transcription
+- video-analysis
+- pdf-text-extraction
+- office-document-extraction
 
-Then open http://localhost:8000.
+No adapter is bundled by default. Adapters can later be implemented with audited, self-hosted parsers/models if needed.
 
-For Cloudflare Pages:
-- Build command: `bash build.sh`
-- Build output directory: `dist`
-- Root directory: `/`
+## Architecture
+- index.html: browser chat and file-input UI.
+- brain.js: deterministic kernel, memory, and public CPB01 interface.
+- input-engine.js: automatic format detection and universal representation.
+- tests/input-engine.test.mjs: Node.js tests for core text and file detection.
+- build.sh: static deployment helper; output directory is dist/.
 
-## Input pipeline
+## Run locally
 
-```
-Raw input / uploaded file
-        |
-        v
-Format detection and byte-signature inspection
-        |
-        v
-Text decoding (UTF-8 / UTF-16 BOM) and conservative normalization
-        |
-        +---- Text formats -> format-specific structural analysis
-        |
-        +---- Binary formats -> identification + explicit adapter-needed status
-        |
-        v
-Normalized content / structured analysis
-        |
-        v
-Current symbolic kernel (limited rules and fact memory)
-```
+Use a local static server because the project uses ES modules:
 
-### Modules
+    python3 -m http.server 8000
 
-- `input/format-detector.js`: extension and content-based format detection.
-- `input/text-normalizer.js`: BOM-aware decoding and NFC normalization.
-- `input/universal-input.js`: text/file ingestion and lightweight format-specific analysis.
-- `brain.js`: existing deterministic kernel and local fact memory.
-- `index.html`: chat UI, file picker, and pipeline integration.
+Open http://localhost:8000.
 
-## Current kernel examples
+Run tests with Node.js 18+:
 
-Teach a fact:
-
-```
-Ghi nhớ: Trái Đất | là | hành tinh
-```
-
-Query:
-
-```
-Trái Đất là gì?
-```
-
-Other supported inputs include `Bạn là ai?`, `Bạn có nhớ gì?`, and `tính 12 * 8`.
-
-Unknown inputs are reported as unknown. The kernel does not invent answers.
+    node --test tests/input-engine.test.mjs
 
 ## Build
 
-`bash build.sh` validates the entry files and copies the UI, kernel, and `input/` modules to `dist/`.
+    bash build.sh
 
-## Privacy
+For Cloudflare Pages, use build command bash build.sh and output directory dist.
 
-The prototype processes files locally in the browser and does not upload their contents. Existing fact memory is stored in browser localStorage. Clearing browser site data also clears that local memory.
+## Memory and privacy
+Facts are stored in this browser profile's localStorage. Uploaded files are processed in the browser and are not uploaded by this core. File contents are not stored in long-term memory. Clearing browser site data also clears local memory.
 
-## Next engineering milestones
-
-1. Add robust streaming/large-file handling and explicit size limits.
-2. Implement real PDF and DOCX text extraction adapters.
-3. Add optional OCR and speech transcription adapters with clear local/remote privacy controls.
-4. Add language identification and multilingual tokenization as separate, testable modules.
-5. Convert parser outputs into a versioned Universal Representation schema.
-6. Connect that representation to memory and reasoning only after validation tests pass.
-7. Add regression tests for encodings, malformed inputs, binary signatures, and parser edge cases.
+## Scope
+This is an experimental deterministic prototype, not human-like intelligence or AGI. Input classification and language detection are heuristic and can be wrong. Reasoning remains limited to explicitly implemented rules.
