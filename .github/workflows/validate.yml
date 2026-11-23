@@ -1,0 +1,30 @@
+name: Validate CPB-01
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  syntax-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check brain.js
+          node --check input/format-detector.js
+          node --check input/text-normalizer.js
+          node --check input/universal-input.js
+      - name: Check build script syntax
+        run: bash -n build.sh
+      - name: Build static site
+        run: |
+          bash build.sh
+          test -f dist/index.html
+          test -f dist/brain.js
+          test -f dist/input/format-detector.js
+          test -f dist/input/text-normalizer.js
+          test -f dist/input/universal-input.js
