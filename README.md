@@ -83,3 +83,35 @@ Validate the schema and run regression tests with:
 npm test
 bash build.sh
 ```
+
+
+## Cognitive Core v0.1
+
+The current chat kernel delegates to `cognitive-core.js`, which introduces an inspectable, bounded cognitive cycle:
+
+```
+Input representation
+    -> Perception / working-state update
+    -> Associative memory retrieval
+    -> Relation-based inference
+    -> Confidence and uncertainty estimate
+    -> Natural-language response
+    -> Episode / memory update
+```
+
+### Current capabilities
+
+- Persistent semantic facts and bounded episodic records in browser localStorage.
+- Associative retrieval using overlapping Unicode-aware terms.
+- Explicitly labeled two-link relation inference for a small supported relation pattern.
+- A safe arithmetic expression parser supporting +, -, *, /, %, powers, parentheses, unary signs, and division-by-zero checks. It does not use JavaScript `eval`.
+- A small working state tracking recent turns, current focus, and coarse conversational tone estimates. These are computational signals, not subjective feelings.
+- A reasoning trace and confidence value returned by the kernel for inspection.
+
+### Important limits
+
+This is an early symbolic cognitive architecture, not a human mind and not general intelligence. It does not yet have broad world knowledge, robust language understanding, grounded perception, autonomous learning from arbitrary documents, or human-like common-sense reasoning. It only infers within explicit stored relationships and reports uncertainty when evidence is missing.
+
+The design keeps capabilities bounded: no unrestricted self-modification, self-replication, shell access, or autonomous external actions. New capabilities should be added as testable, permission-limited subsystems.
+
+Run all tests with `npm test`.
