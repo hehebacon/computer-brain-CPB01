@@ -68,7 +68,7 @@ export class CognitiveCore {
   const raw=String(input??"").trim();this.cycle++;this.state.update(raw,representation);
   const trace=[{stage:"perception",result:"input represented",format:representation?.format||"plain-text"}];
   this.lastHCS=this.hcs.process(raw);
-  trace.push({stage:"human-cognitive-systems",emotion:this.lastHCS.emotion.primary,questionType:this.lastHCS.question.type,dialogueAct:this.lastHCS.dialogueAct,familiarity:this.lastHCS.familiarity.level});
+  trace.push({stage:"human-cognitive-systems",emotion:this.lastHCS.emotion.primary,emotionScore:this.lastHCS.affect.score,emotionState:this.lastHCS.affect.label,praiseDetected:this.lastHCS.emotion.praiseDetected,insultDetected:this.lastHCS.emotion.insultDetected,language:this.lastHCS.language.language,questionType:this.lastHCS.question.type,dialogueAct:this.lastHCS.dialogueAct,familiarity:this.lastHCS.familiarity.level});
   if(!raw)return {text:"Tui chưa nhận được nội dung.",trace,confidence:0};
   const intent=classifyUtterance(raw);trace.push({stage:"intent-classification",intent:intent.intent,confidence:intent.confidence});
   if(intent.intent==="teach"||intent.intent==="assertion"){
