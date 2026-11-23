@@ -39,13 +39,13 @@ test("reasoning engine supports explicit IF/ELSE decisions",()=>{
   {label:"known",when:[{field:"confidence",op:"gte",value:0.8},{field:"hasEvidence",op:"truthy"}],value:"answer"},
   {label:"fallback",when:[{field:"question",op:"truthy"}],value:"ask-for-source"}
  ],{confidence:0.9,hasEvidence:true,question:true});
- assert.deepEqual(result,{value:"answer",rule:"known"});
- assert.deepEqual(engine.decide([]),{value:null,rule:"else"});
+ assert.deepEqual(result,{value:"answer",rule:"known",status:"true"});
+ assert.deepEqual(engine.decide([]),{value:null,rule:"no-matching-rule",status:"false"});
 });
 
 test("reasoning engine performs bounded forward chaining and detects conflicting facts",()=>{
  const engine=new ReasoningEngine({maxDepth:2});
- engine.addRule({if:{subject:"Sao Hỏa",relation:"là",object:"hành tinh"},then:{subject:"Sao Hỏa",relation:"thuộc nhóm",object:"thiên thể"},confidence:0.8,label:"planet-is-celestial"});
+ engine.addRule({id:"planet-is-celestial",if:{subject:"Sao Hỏa",relation:"là",object:"hành tinh"},then:{subject:"Sao Hỏa",relation:"thuộc nhóm",object:"thiên thể"},confidence:0.8,label:"planet-is-celestial"});
  const chained=engine.forwardChain([{subject:"Sao Hỏa",relation:"là",object:"hành tinh",confidence:0.9}]);
  assert.equal(chained.facts.length,2);
  assert.equal(chained.trace[0].rule,"planet-is-celestial");
