@@ -7,13 +7,13 @@ CPB-01 is a local-first deterministic cognitive-system prototype. It does not us
 The Universal Input Engine automatically classifies text and files. It creates a Universal Input Representation (schema cpb01.uir/1), preserving the original source and reporting uncertainty and limitations.
 
 ### Core recognition and extraction
-- Natural text: raw text preservation, NFC-normalized companion text, approximate word/sentence/paragraph counts, script and heuristic language hints.
+- Natural text: raw text preservation, NFC-normalized companion text, token and segment offsets, approximate word/sentence/paragraph counts, script and heuristic language hints. UTF-8 and BOM-marked UTF-16 decoding for text files.
 - Structured text: JSON parsing, basic XML/HTML structural detection, Markdown structure detection, CSV/TSV row parsing.
 - Source code: extension/signature heuristics and basic source metrics; not a compiler or security analyzer.
-- Images: PNG, JPEG, GIF, WebP signature recognition and image dimensions where browser decoding is available.
-- Audio: WAV, MP3, OGG recognition and browser-readable media metadata.
-- Video: MP4 recognition and browser-readable media metadata.
-- Documents: PDF and DOCX/XLSX/PPTX container recognition.
+- Images: PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC signature recognition and image dimensions where browser decoding is available.
+- Audio: WAV, MP3, OGG, FLAC, AAC, M4A recognition and browser-readable media metadata.
+- Video: MP4, WebM, MKV recognition and browser-readable media metadata.
+- Documents: PDF, DOCX/XLSX/PPTX, ODT/ODS/ODP and legacy Office container recognition.
 
 ### Capability boundary
 Recognition is not semantic understanding. The core does not yet perform OCR/visual interpretation, speech-to-text, video scene understanding, PDF text extraction, or Office document extraction. Those require explicit adapters registered through CPB01.registerAdapter(type, handler). Missing adapters are reported as recognized-needs-adapter; the engine never claims to have read content it did not extract. Archive contents are not executed or automatically unpacked.
@@ -30,7 +30,8 @@ No adapter is bundled by default. Adapters can later be implemented with audited
 ## Architecture
 - index.html: browser chat and file-input UI.
 - brain.js: deterministic kernel, memory, and public CPB01 interface.
-- input-engine.js: automatic format detection and universal representation.
+- input-engine.js: automatic format detection, text decoding, file signatures, and adapter routing.
+- universal-representation.js: versioned, loss-aware UIR with raw/normalized content, token spans, segments, provenance, limitations, and explicit interpretation status.
 - tests/input-engine.test.mjs: Node.js tests for core text and file detection.
 - build.sh: static deployment helper; output directory is dist/.
 
