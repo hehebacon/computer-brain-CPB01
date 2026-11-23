@@ -227,7 +227,8 @@ const result = CPB01.reason("Milo");
 
 - HTML preview is **static-only**. Script elements, inline event handlers, embedded frames, forms, and other active content are stripped; the iframe uses an opaque sandbox and restrictive CSP. It does not execute uploaded HTML scripts.
 - JavaScript snippets run in a DOM-less Web Worker. Common network and persistence APIs (fetch, XMLHttpRequest, WebSocket, IndexedDB, etc.) are disabled where supported; console output is capped and the Worker is terminated after a configurable 250–8000 ms wall-clock timeout.
-- Python is formatted and previewed as Markdown only; no Python runtime is bundled. CSS can be previewed inside a static HTML shell.
+- Local source files (.html, .css, .js/.mjs/.cjs, .py, .json, .md, .txt) can be loaded into the workbench from the user's device. The browser refuses files above 160 KB and does not run them automatically; the user must inspect the contents and explicitly choose preview or run.
+- JSON is syntax-checked with the browser's JSON parser. Python is formatted and previewed as Markdown only; no Python runtime is bundled. CSS can be previewed inside a static HTML shell.
 - This is a browser-level execution boundary, not a hardened operating-system/container sandbox. Do not use it as a substitute for reviewing untrusted code, and do not paste secrets into snippets. No shell, package installation, or host filesystem access is provided.
 
 ## Direct search without Worker or model tokens
