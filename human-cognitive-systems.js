@@ -30,18 +30,18 @@ export function recognizeEmotion(input){
 }
 export function classifyQuestion(input){
  const text=String(input??"").trim(),q=fold(text);
- const def=q.match(/^(.+?)\\s+(?:la gi|la ai|la cai gi|la con gi)\\??$/);
- if(!/[?？]$/.test(text)&&!def&&! /^(ai|gi|cai gi|tai sao|vi sao|o dau|khi nao|the nao|lam sao|bao nhieu|co phai|is|are|what|who|why|where|when|how)\\b/.test(q))return {isQuestion:false,type:"none",target:null,confidence:0.2};
+ const def=q.match(/^(.+?)\s+(?:la gi|la ai|la cai gi|la con gi)\??$/);
+ if(!/[?？]$/.test(text)&&!def&&! /^(ai|gi|cai gi|tai sao|vi sao|o dau|khi nao|the nao|lam sao|bao nhieu|co phai|is|are|what|who|why|where|when|how)\b/.test(q))return {isQuestion:false,type:"none",target:null,confidence:0.2};
  let type="general",target=null;
- if(def){type="definition";target:text.replace(/\\s+(?:là gì|la gi|là ai|la ai|là cái gì|la cai gi|là con gì|la con gi)\\s*\\??$/i,"").trim();}
- else if(/^(ai|who)\\b/.test(q))type="person";
- else if(/^(gi|cai gi|what)\\b/.test(q))type="definition-or-object";
- else if(/^(tai sao|vi sao|why)\\b/.test(q))type="cause";
- else if(/^(o dau|where)\\b/.test(q))type="location";
- else if(/^(khi nao|when)\\b/.test(q))type="time";
- else if(/^(the nao|lam sao|how)\\b/.test(q))type="method-or-process";
- else if(/^(bao nhieu|how many|how much)\\b/.test(q))type="quantity";
- else if(/^(co phai|is|are|do|does|did|can|will)\\b/.test(q))type="yes-no";
+ if(def){type="definition";target:text.replace(/\s+(?:là gì|la gi|là ai|la ai|là cái gì|la cai gi|là con gì|la con gi)\s*\??$/i,"").trim();}
+ else if(/^(ai|who)\b/.test(q))type="person";
+ else if(/^(gi|cai gi|what)\b/.test(q))type="definition-or-object";
+ else if(/^(tai sao|vi sao|why)\b/.test(q))type="cause";
+ else if(/^(o dau|where)\b/.test(q))type="location";
+ else if(/^(khi nao|when)\b/.test(q))type="time";
+ else if(/^(the nao|lam sao|how)\b/.test(q))type="method-or-process";
+ else if(/^(bao nhieu|how many|how much)\b/.test(q))type="quantity";
+ else if(/^(co phai|is|are|do|does|did|can|will)\b/.test(q))type="yes-no";
  return {isQuestion:true,type,target,confidence:def?0.94:0.72};
 }
 export function classifyDialogueAct(input){
