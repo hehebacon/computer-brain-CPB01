@@ -289,7 +289,7 @@ export class HumanCognitiveSystems{
  recordOutcome({confidence=0.2,question=this.lastProfile?.question}={}){
   const agentAffect=this.agentAffect.observeOutcome({confidence,isQuestion:Boolean(question?.isQuestion),hasEvidence:Number(confidence)>=0.65});
   const userScore=this.affect.snapshot().score;
-  const adaptation=userScore<=-30?"supportive":question?.isQuestion&&question.confidence<0.6?"clarifying":this.lastProfile?.language?.language==="und"?"language-aware":"direct";
+  const adaptation=userScore<=-30?"supportive":question?.isQuestion&&question.confidence<0.6?"clarifying":agentAffect.confidence<40||agentAffect.focus<40?"cautious":this.lastProfile?.language?.language==="und"?"language-aware":"direct";
   if(this.lastProfile){this.lastProfile.agentAffect=agentAffect;this.lastProfile.adaptation=adaptation;}
   return {agentAffect,adaptation};
  }
