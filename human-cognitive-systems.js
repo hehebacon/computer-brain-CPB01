@@ -52,8 +52,8 @@ export function detectLanguageHint(input){
 }
 const EMOTION_LEXICON={
  joy:["vui","hanh phuc","phan khoi","tuyet voi","qua da","thich qua","yeu doi","great","happy","glad","excited","wonderful","amazing","fantastic","feliz","alegre","genial","heureux","heureuse","super","glücklich","toll","feliz","ótimo","felice","素晴らしい","嬉しい","开心","高兴","행복","기뻐","счастлив","рад"],
- sadness:["buon","that vong","chan nan","co don","met moi","that bai","sad","upset","disappointed","lonely","triste","decepcionado","déçu","traurig","enttäuscht","triste","deprimido","triste","sad","悲しい","伤心","难过","슬퍼","х грустно","грустно"],
- anger:["tuc","gian","buc xuc","kho chiu","uc che","phien","annoyed","angry","furious","enojado","molesto","fâché","colère","wütend","怒","生气","화나","злой","غاضب"],
+ sadness:["buon","that vong","chan nan","co don","met moi","that bai","sad","upset","disappointed","lonely","not happy","not okay","not ok","khong vui","khong hanh phuc","no feliz","pas heureux","nicht glücklich","não feliz","non felice","嬉しくない","不开心","행복하지 않아","не счастлив","悲しい","伤心","难过","슬퍼","х грустно","грустно"],
+ anger:["tuc","gian","buc xuc","kho chiu","uc che","phien","hate","hate this","ghét","odio","haine","hass","odeio","憎い","讨厌","싫어","ненавижу","أكره","नफरत","annoyed","angry","furious","enojado","molesto","fâché","colère","wütend","怒","生气","화나","злой","غاضب"],
  fear:["so","lo lang","hoang so","bat an","run","fear","afraid","worried","anxious","miedo","temor","peur","Angst","medo","paura","怖い","害怕","무서워","страшно"],
  surprise:["bat ngo","khong ngo","kinh ngac","wow","surprised","unexpected","sorpresa","surpris","überrascht","惊讶","びっくり","놀라","удивлен"],
  confusion:["khong hieu","roi qua","boi roi","kho hieu","confused","unclear","what do you mean","confundido","perdu","verwirrt","困惑","混乱","헷갈려"],
