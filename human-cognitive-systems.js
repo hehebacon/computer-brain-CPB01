@@ -241,7 +241,7 @@ export class HumanCognitiveSystems{
  process(input){
   const emotion=recognizeEmotion(input),question=classifyQuestion(input),dialogueAct=classifyDialogueAct(input),familiarity=this.familiarity.observe(input),affect=this.affect.observe(input,emotion);
   const attention=words(input).filter(w=>w.length>3).slice(-8);
-  const language=emotion.language;
+  const language=question.language&&question.language!=="und"?question.language:emotion.language;
   return {emotion,question,dialogueAct,familiarity,affect,language,attention,selfMonitoring:{uncertainty:Math.max(0,1-Math.max(emotion.confidence,question.confidence)),needsClarification:question.isQuestion&&question.confidence<0.55}};
  }
  setAffect(score){return this.affect.set(score);}
