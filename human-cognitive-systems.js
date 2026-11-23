@@ -383,7 +383,13 @@ export class HumanCognitiveSystems{
  resetAffect(){return this.affect.reset();}
  setAgentAffect(score){return this.agentAffect.set(score);}
  resetAgentAffect(){return this.agentAffect.reset();}
- recordTaskOutcome(success,severity=1){const bond=this.bond.recordOutcome({success,severity});return bond;}
+ recordTaskOutcome(success,severity=1){
+  const bond=this.bond.recordOutcome({success,severity});
+  const error=success===false;
+  const agentAffect=this.agentAffect.observeOutcome({confidence:error?0.05:success===true?0.95:0.2,hasEvidence:success===true,error});
+  if(this.lastProfile){this.lastProfile.bond=bond;this.lastProfile.agentAffect=agentAffect;if(error)this.lastProfile.adaptation="cautious";}
+  return {bond,agentAffect,adaptation:error?"cautious":"direct"};
+ }
  reset(){this.familiarity.reset();this.affect.reset();this.agentAffect=new AgentAffectModel();this.bond=new BondTrustModel();}
  export(){return {familiarity:this.familiarity.export(),affect:this.affect.export(),userAffect:this.affect.export(),agentAffect:this.agentAffect.export(),bond:this.bond.export()};}
 }
