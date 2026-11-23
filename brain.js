@@ -59,6 +59,14 @@ import { DirectSearchAdapter, buildPublicSearchLinks } from "./direct-search.js"
   runCode(source,options={}){return codeWorkbench.runJavaScript(source,options);},
   mountSandbox(options){return mountSandbox(options);},
   searchDirect(query,options={}){return directSearch.search(query,options);},
+  async searchDirectAndAnswer(query,options={}){
+   const detected=detectLanguageHint(query).language||"vi";
+   const response=await directSearch.search(query,{...options,language:options.language||detected});
+   const preferences=personalization.snapshot().preferences;
+   const answerLanguage=preferences.language==="auto"?(detected==="en"?"en":"vi"):preferences.language;
+   const answer=composeSearchAnswer(query,response.results,{preferences:{...preferences,language:answerLanguage},userAffect:core.hcs.affect.snapshot(),memoryFacts:memory.recall(query)});
+   return {...response,answer};
+  },
   buildSocialSearchLinks(query){return buildPublicSearchLinks(query);},
   searchLocal(query,limit=8){return memory.recall(query,limit);},
   registerRule(rule){const added=core.registerRule(rule);save();return added;},
