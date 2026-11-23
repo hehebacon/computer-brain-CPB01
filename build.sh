@@ -22,6 +22,7 @@ build() {
  cp -- "${ROOT_DIR}/brain.js" "${DIST_DIR}/brain.js"
  cp -- "${ROOT_DIR}/input-engine.js" "${DIST_DIR}/input-engine.js"
  cp -- "${ROOT_DIR}/universal-representation.js" "${DIST_DIR}/universal-representation.js"
+ cp -- "${ROOT_DIR}/universal-representation.js" "${DIST_DIR}/universal-representation.js"
  if [[ -f "${ROOT_DIR}/README.md" ]]; then cp -- "${ROOT_DIR}/README.md" "${DIST_DIR}/README.md"; fi
  echo "[CPB-01] Build complete. Output: ${DIST_DIR}"
 }
