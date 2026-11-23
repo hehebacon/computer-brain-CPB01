@@ -143,3 +143,51 @@ CPB01.registerLanguagePack({
 ```
 
 The familiarity model continues to count local interaction turns; it does not represent affection or a real relationship. HCS output includes confidence and uncertainty, but recognition remains heuristic. Script detection is not translation, and a list of language patterns does **not** mean the core can fully understand every language, dialect, or context. Full multilingual understanding needs substantially broader language resources and/or audited translation or language-model adapters. HCS is a functional software model, not evidence of consciousness or subjective feelings.
+
+
+## Dual affect, personalization, and public search (v0.3)
+
+### Separate affect models
+
+- **User Affect** estimates the emotional tone of the current user's text and maintains a local score from -100 to +100. It is an uncertain text estimate, not a verified statement about the person.
+- **Agent Affect** is a separate simulated internal operating state. It changes after each cognitive cycle based on the kernel's confidence, whether it handled a question, and whether evidence was found. It is not copied from the user's score and is not a claim that CPB-01 has subjective feelings.
+- The response policy can choose a supportive, clarifying, language-aware, or direct presentation mode. These modes may change wording, but must not change evidence or confidence.
+- Both states are visible and can be adjusted/reset in the sidebar. Values are saved in local browser storage.
+
+### Personalization and evidence synthesis
+
+The personalization profile stores explicit presentation choices only: response detail (concise/balanced/detailed), tone (casual/neutral/formal), output language (auto/Vietnamese/English for search synthesis), and example preference. A user can also say things such as "trả lời ngắn gọn" or "giải thích chi tiết hơn". These settings are local and do not attempt to infer sensitive traits.
+
+`answer-synthesizer.js` ranks returned search snippets by overlap with the question, shows source links, identifies shared query terms, and may add relevant local facts that were already stored in CPB-01. Local memory is combined in the browser and is **not included in the external search request**. Lexical overlap is not proof of truth or source agreement. The synthesizer has read only the returned title/snippet, not the full page.
+
+### Public search Worker
+
+The browser does not contain the provider API key. `worker/search-worker.js` is a separate Cloudflare Worker proxy, configured by `wrangler.toml`. It calls the [Brave Search Web API](https://api-dashboard.search.brave.com/api-reference/web/search/get) with the `X-Subscription-Token` header and `safesearch=strict`. See the provider's [authentication guidance](https://api-dashboard.search.brave.com/documentation/guides/authentication).
+
+Deploy the Worker separately from the Cloudflare Pages static site:
+
+1. Install/use Wrangler and authenticate to the Cloudflare account.
+2. From the repository root, add the API key as a Worker secret (never as a committed `vars` entry):
+
+   ```sh
+   npx wrangler secret put BRAVE_SEARCH_API_KEY
+   ```
+
+3. In the Worker settings, add a plain configuration variable named `ALLOWED_ORIGINS` with the exact origin of the deployed Pages site, for example `https://your-project.pages.dev`. Multiple exact origins can be comma-separated. Local development at `http://localhost:8000` is allowed.
+4. Deploy the Worker:
+
+   ```sh
+   npx wrangler deploy
+   ```
+
+5. Copy the Worker endpoint (for example, `https://cpb01-public-search.<your-subdomain>.workers.dev`) into the "Địa chỉ Search Worker" field in the CPB-01 sidebar and save it.
+
+The Worker optionally accepts a Cloudflare rate-limit binding named `SEARCH_RATE_LIMITER`; configure that binding in Cloudflare if you want an enforced per-client limit. The Worker also caps query/body sizes and returns a small number of results.
+
+The social mode is **search-engine discovery of public, indexed pages only** (currently constrained to selected public community/video/social domains). It is not an authenticated social-network API: it cannot see private accounts, private posts, direct messages, or content that the search index does not expose. It does not log in, bypass access controls, or scrape private areas.
+
+Search sends the typed query to the external search provider. Do not put passwords, private messages, personal contact details, or other sensitive information into a search query. Local CPB-01 memories are not sent with it. Search/API usage may require an active provider plan and may have usage costs; check the provider's current terms and pricing before enabling it.
+
+### Current capability limits
+
+CPB-01 remains a deterministic prototype. Its search answerer is extractive/rule-based: it ranks snippets and summarizes the evidence available in those snippets. It does not independently verify source accuracy, resolve contradictions reliably, translate every language, or understand every social post. Important answers should be checked against the linked source pages. Neither affect model establishes consciousness or real subjective feelings.
