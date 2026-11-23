@@ -72,3 +72,10 @@ test("clarifying and supportive phrasing also follows neutral tone",()=>{
  assert.match(text,/Bạn có thể nói rõ/);
  assert.doesNotMatch(text,/Ông có thể/);
 });
+
+
+test("cautious internal state adds an explicit uncertainty notice",()=>{
+ const profile=new PersonalizationModel();
+ const text=profile.adaptText("Chưa tìm thấy dữ kiện phù hợp.",{mode:"cautious",confidence:0.15});
+ assert.match(text,/độ chắc chắn.*còn thấp/i);
+});
