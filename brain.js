@@ -24,11 +24,13 @@ import { CognitiveCore, CognitiveMemory } from "./cognitive-core.js";
   respond,
   analyze(text){state.lastRepresentation=analyzeText(text);return state.lastRepresentation;},
   async processFile(file){const result=await analyzeFile(file);state.lastRepresentation=result;return result;},
-  stats(){return {turns:state.turns,facts:memory.semantic.length,episodes:memory.episodes.length,concepts:memory.concepts.size,reasoningCycles:core.cycle,familiarity:core.hcs.familiarity.snapshot(),lastCognitiveProfile:core.lastHCS,...inputEngineStats(),lastInputKind:state.lastRepresentation?state.lastRepresentation.kind:null};},
+  stats(){return {turns:state.turns,facts:memory.semantic.length,episodes:memory.episodes.length,concepts:memory.concepts.size,reasoningCycles:core.cycle,familiarity:core.hcs.familiarity.snapshot(),affect:core.hcs.affect.snapshot(),lastCognitiveProfile:core.lastHCS,...inputEngineStats(),lastInputKind:state.lastRepresentation?state.lastRepresentation.kind:null};},
+  setAffect(score){const value=core.hcs.setAffect(score);save();return value;},
+  resetAffect(){const value=core.hcs.setAffect(0);save();return value;},
   lastInput(){return state.lastRepresentation;},
   recall(query){return memory.recall(query);},
   registerAdapter:registerInputAdapter,
-  clear(){memory.clear();state.turns=0;core.cycle=0;save();}
+  clear(){memory.clear();state.turns=0;core.cycle=0;core.hcs.reset();save();}
  };
  window.dispatchEvent(new CustomEvent("cpb01-ready",{detail:{inputEngineVersion:INPUT_ENGINE_VERSION,coreVersion:"0.1.0"}}));
 })();
