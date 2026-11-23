@@ -18,6 +18,8 @@ jobs:
           node --check input/format-detector.js
           node --check input/text-normalizer.js
           node --check input/universal-input.js
+      - name: Run regression tests
+        run: npm test
       - name: Check build script syntax
         run: bash -n build.sh
       - name: Build static site
