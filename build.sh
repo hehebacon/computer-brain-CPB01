@@ -12,15 +12,15 @@ EOF
 }
 build() {
  echo "[CPB-01] Checking source files..."
- for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js personalization.js search-client.js answer-synthesizer.js reasoning-engine.js code-workbench.js; do
+ for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js personalization.js search-client.js answer-synthesizer.js reasoning-engine.js code-workbench.js direct-search.js; do
   if [[ ! -f "${ROOT_DIR}/${file}" ]]; then echo "[ERROR] Missing required file: ${file}" >&2; exit 1; fi
  done
- if ! grep -q 'input-engine.js' "${ROOT_DIR}/brain.js" || ! grep -q 'universal-representation.js' "${ROOT_DIR}/input-engine.js" || ! grep -q 'cognitive-core.js' "${ROOT_DIR}/brain.js" || ! grep -q 'human-cognitive-systems.js' "${ROOT_DIR}/cognitive-core.js" || ! grep -q 'personalization.js' "${ROOT_DIR}/brain.js" || ! grep -q 'search-client.js' "${ROOT_DIR}/brain.js" || ! grep -q 'answer-synthesizer.js' "${ROOT_DIR}/brain.js" || ! grep -q 'reasoning-engine.js' "${ROOT_DIR}/cognitive-core.js" || ! grep -q 'code-workbench.js' "${ROOT_DIR}/brain.js"; then
+ if ! grep -q 'input-engine.js' "${ROOT_DIR}/brain.js" || ! grep -q 'universal-representation.js' "${ROOT_DIR}/input-engine.js" || ! grep -q 'cognitive-core.js' "${ROOT_DIR}/brain.js" || ! grep -q 'human-cognitive-systems.js' "${ROOT_DIR}/cognitive-core.js" || ! grep -q 'personalization.js' "${ROOT_DIR}/brain.js" || ! grep -q 'search-client.js' "${ROOT_DIR}/brain.js" || ! grep -q 'answer-synthesizer.js' "${ROOT_DIR}/brain.js" || ! grep -q 'reasoning-engine.js' "${ROOT_DIR}/cognitive-core.js" || ! grep -q 'code-workbench.js' "${ROOT_DIR}/brain.js" || ! grep -q 'direct-search.js' "${ROOT_DIR}/brain.js"; then
   echo "[ERROR] Required module dependency is missing" >&2; exit 1
  fi
  rm -rf -- "${DIST_DIR}"
  mkdir -p -- "${DIST_DIR}"
- for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js personalization.js search-client.js answer-synthesizer.js reasoning-engine.js code-workbench.js; do
+ for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js personalization.js search-client.js answer-synthesizer.js reasoning-engine.js code-workbench.js direct-search.js; do
   cp -- "${ROOT_DIR}/${file}" "${DIST_DIR}/${file}"
  done
  if [[ -f "${ROOT_DIR}/README.md" ]]; then cp -- "${ROOT_DIR}/README.md" "${DIST_DIR}/README.md"; fi
