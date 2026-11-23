@@ -375,10 +375,11 @@ export class HumanCognitiveSystems{
  }
  recordOutcome({confidence=0.2,question=this.lastProfile?.question,success,severity=1}={}){
   const correction=this.lastProfile?.bond?.lastOutcome==="failed-task";
-  const agentAffect=this.agentAffect.observeOutcome({confidence,isQuestion:Boolean(question?.isQuestion),hasEvidence:Number(confidence)>=0.65,error:correction});
+  const duplicateCorrection=this.lastProfile?.bond?.lastOutcome==="duplicate-correction";
+  const agentAffect=duplicateCorrection?this.agentAffect.snapshot():this.agentAffect.observeOutcome({confidence,isQuestion:Boolean(question?.isQuestion),hasEvidence:Number(confidence)>=0.65,error:correction});
   const bond=success===undefined?this.bond.snapshot():this.bond.recordOutcome({success,severity});
   const userScore=this.affect.snapshot().score;
-  const adaptation=correction||agentAffect.confidence<40||agentAffect.focus<40?"cautious":userScore<=-30?"supportive":question?.isQuestion&&question.confidence<0.6?"clarifying":this.lastProfile?.language?.language==="und"?"language-aware":"direct";
+  const adaptation=correction||duplicateCorrection||agentAffect.confidence<40||agentAffect.focus<40?"cautious":userScore<=-30?"supportive":question?.isQuestion&&question.confidence<0.6?"clarifying":this.lastProfile?.language?.language==="und"?"language-aware":"direct";
   if(this.lastProfile){this.lastProfile.agentAffect=agentAffect;this.lastProfile.bond=bond;this.lastProfile.adaptation=adaptation;}
   return {agentAffect,bond,adaptation};
  }
