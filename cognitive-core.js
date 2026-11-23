@@ -62,7 +62,7 @@ function infer(memory,subject,reasoner=new ReasoningEngine()){return reasoner.in
 
 export class CognitiveCore {
  constructor(memory=new CognitiveMemory(),hcsData={}){
-  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.reasoner=new ReasoningEngine();this.lastHCS=null;
+  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.reasoner=new ReasoningEngine();for(const rule of hcsData.reasoningRules||[])this.reasoner.addRule(rule);this.lastHCS=null;
   // Small, explicit baseline knowledge; provenance remains visible and distinct from user input.
   if(!this.memory.semantic.some(f=>fold(f.subject)==="trai dat"&&f.source==="builtin-knowledge")){
    this.memory.learn("Trái Đất","là","hành tinh","builtin-knowledge",0.99);
@@ -74,7 +74,7 @@ export class CognitiveCore {
   const raw=String(input??"").trim();this.cycle++;this.state.update(raw,representation);
   const trace=[{stage:"perception",result:"input represented",format:representation?.format||"plain-text"}];
   this.lastHCS=this.hcs.process(raw);
-  trace.push({stage:"human-cognitive-systems",emotion:this.lastHCS.emotion.primary,emotionScore:this.lastHCS.affect.score,emotionState:this.lastHCS.affect.label,praiseDetected:this.lastHCS.emotion.praiseDetected,insultDetected:this.lastHCS.emotion.insultDetected,language:this.lastHCS.language.language,questionType:this.lastHCS.question.type,dialogueAct:this.lastHCS.dialogueAct,familiarity:this.lastHCS.familiarity.level});
+  trace.push({stage:"human-cognitive-systems",emotion:this.lastHCS.emotion.primary,emotionScore:this.lastHCS.affect.score,emotionState:this.lastHCS.affect.label,bondScore:this.lastHCS.bond.score,bondOutcome:this.lastHCS.bond.lastOutcome,agentState:this.lastHCS.agentAffect.mode,praiseDetected:this.lastHCS.emotion.praiseDetected,insultDetected:this.lastHCS.emotion.insultDetected,language:this.lastHCS.language.language,questionType:this.lastHCS.question.type,dialogueAct:this.lastHCS.dialogueAct,familiarity:this.lastHCS.familiarity.level});
   if(!raw)return {text:"Tui chưa nhận được nội dung.",trace,confidence:0};
   const intent=classifyUtterance(raw);trace.push({stage:"intent-classification",intent:intent.intent,confidence:intent.confidence});
   if(intent.intent==="teach"||intent.intent==="assertion"){
@@ -97,4 +97,8 @@ export class CognitiveCore {
   if(recalled.length)return {text:"Tui tìm thấy các dữ kiện có liên quan:\n"+recalled.map(f=>"- "+f.subject+" "+f.relation+" "+f.object+" [nguồn: "+f.source+"]").join("\n")+"\nTui chưa đủ căn cứ để kết luận xa hơn.",trace,confidence:Math.min(0.7,recalled[0].confidence)};
   return {text:intent.intent==="question"?"Tui nhận ra đây là câu hỏi, nhưng hiện chưa có tri thức phù hợp để trả lời.":"Tui chưa hiểu rõ ý ông. Ông thử diễn đạt thành câu hỏi cụ thể hoặc dạy tui một quan hệ theo dạng: Ghi nhớ: chủ thể | quan hệ | đối tượng.",trace,confidence:0.15};
  }
+ registerRule(rule){return this.reasoner.addRule(rule);}
+ reason(subject){return this.reasoner.inferDefinition(this.memory,subject);}
+ decideIfElse(decision){return this.reasoner.decideIfElse(decision,this.memory.semantic);}
+ runReasoning(){return this.reasoner.forwardChain(this.memory.semantic);}
 }
