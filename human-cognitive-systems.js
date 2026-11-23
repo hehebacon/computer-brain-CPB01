@@ -26,12 +26,12 @@ const scripts=[
 ];
 const LANGUAGE_CUES={
  vi:["toi","tui","ban","minh","khong","nhung","duoc","la gi","cam on"],
- en:["the","you","what","why","please","thank you","hello"],
- es:["que","como","gracias","hola","porque","eres"],
- fr:["bonjour","merci","vous","pourquoi","comment","est ce"],
- de:["hallo","danke","warum","bitte","nicht","was"],
- pt:["ola","obrigado","obrigada","voce","porque","como"],
- it:["ciao","grazie","perche","come","sono"],
+ en:["the","you","what","why","please","thank you","hello","i am","not","happy","sad","good","bad","because","where","when","how"],
+ es:["que","como","gracias","hola","porque","eres","donde","estoy","feliz","triste","muy bien","no estoy"],
+ fr:["bonjour","merci","vous","pourquoi","comment","est ce","je suis","heureux","heureuse","triste","pas"],
+ de:["hallo","danke","warum","bitte","nicht","was","ich bin","glücklich","traurig","gut","schlecht"],
+ pt:["ola","obrigado","obrigada","voce","porque","como","eu sou","feliz","triste","nao","estou"],
+ it:["ciao","grazie","perche","come","sono","felice","triste","buono","non"],
  ru:["привет","спасибо","почему","что","как"],
  ar:["مرحبا","شكرا","لماذا","كيف","ما"],
  zh:["你好","谢谢","为什么","什么","怎么"],
