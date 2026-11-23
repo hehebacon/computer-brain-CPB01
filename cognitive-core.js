@@ -2,6 +2,7 @@
  * Explicit utterance classification, concept retrieval and provenance-aware answers.
  * A bounded symbolic prototype; not human-level cognition.
  */
+import { HumanCognitiveSystems } from "./human-cognitive-systems.js";
 const norm=s=>String(s??"").normalize("NFC").toLocaleLowerCase("vi").trim();
 const fold=s=>norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
 const words=s=>(String(s).match(/[\p{L}\p{M}\p{N}_]+/gu)||[]);
@@ -54,8 +55,8 @@ function questionSubject(text){const m=fold(text).match(/^(.+?)\s+(?:la gi|la ai
 function infer(memory,subject){const direct=memory.semantic.filter(f=>fold(f.subject)===fold(subject));const derived=[];for(const a of direct.filter(f=>fold(f.relation)==="la"))for(const b of memory.semantic){if(fold(a.object)===fold(b.subject)&&fold(b.relation)==="thuoc nhom")derived.push({subject:a.subject,relation:"có quan hệ suy ra là",object:b.object,source:"two-link-inference",confidence:Math.min(a.confidence,b.confidence)*0.8});}if(direct.length||derived.length){const facts=[...direct,...derived];return {facts,method:derived.length?"direct-recall+two-link-inference":"direct-recall",confidence:derived.length?Math.max(...derived.map(f=>f.confidence)):Math.max(...direct.map(f=>f.confidence))};}return {facts:[],method:"no-evidence",confidence:0};}
 
 export class CognitiveCore {
- constructor(memory=new CognitiveMemory()){
-  this.memory=memory;this.state=new WorkingState();this.cycle=0;
+ constructor(memory=new CognitiveMemory(),hcsData={}){
+  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.lastHCS=null;
   // Small, explicit baseline knowledge; provenance remains visible and distinct from user input.
   if(!this.memory.semantic.some(f=>fold(f.subject)==="trai dat"&&f.source==="builtin-knowledge")){
    this.memory.learn("Trái Đất","là","hành tinh","builtin-knowledge",0.99);
@@ -66,6 +67,8 @@ export class CognitiveCore {
  process(input,representation){
   const raw=String(input??"").trim();this.cycle++;this.state.update(raw,representation);
   const trace=[{stage:"perception",result:"input represented",format:representation?.format||"plain-text"}];
+  this.lastHCS=this.hcs.process(raw);
+  trace.push({stage:"human-cognitive-systems",emotion:this.lastHCS.emotion.primary,questionType:this.lastHCS.question.type,dialogueAct:this.lastHCS.dialogueAct,familiarity:this.lastHCS.familiarity.level});
   if(!raw)return {text:"Tui chưa nhận được nội dung.",trace,confidence:0};
   const intent=classifyUtterance(raw);trace.push({stage:"intent-classification",intent:intent.intent,confidence:intent.confidence});
   if(intent.intent==="teach"||intent.intent==="assertion"){
