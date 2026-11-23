@@ -51,7 +51,7 @@ function extractTeach(text){
  return null;
 }
 function questionSubject(text){const m=fold(text).match(/^(.+?)\s+(?:la gi|la ai|la cai gi|la con gi)\??$/i);return m?text.trim().replace(/[?？]+$/,"").replace(/\s+(?:là gì|la gi|là ai|la ai|là cái gì|la cai gi|là con gì|la con gi)\s*$/i,"").trim():null;}
-function infer(memory,subject){const direct=memory.semantic.filter(f=>fold(f.subject)===fold(subject));const derived=[];for(const a of direct.filter(f=>fold(f.relation)==="la"))for(const b of memory.semantic){if(fold(a.object)===fold(b.subject)&&fold(b.relation)==="thuoc nhom")derived.push({subject:a.subject,relation:"có quan hệ suy ra là",object:b.object,source:"two-link-inference",confidence:Math.min(a.confidence,b.confidence)*0.8});}if(direct.length||derived.length){const facts=[...direct,...derived];return {facts,method:derived.length?"direct-recall+two-link-inference":"direct-recall",confidence:Math.max(...facts.map(f=>f.confidence))};}return {facts:[],method:"no-evidence",confidence:0};}
+function infer(memory,subject){const direct=memory.semantic.filter(f=>fold(f.subject)===fold(subject));const derived=[];for(const a of direct.filter(f=>fold(f.relation)==="la"))for(const b of memory.semantic){if(fold(a.object)===fold(b.subject)&&fold(b.relation)==="thuoc nhom")derived.push({subject:a.subject,relation:"có quan hệ suy ra là",object:b.object,source:"two-link-inference",confidence:Math.min(a.confidence,b.confidence)*0.8});}if(direct.length||derived.length){const facts=[...direct,...derived];return {facts,method:derived.length?"direct-recall+two-link-inference":"direct-recall",confidence:derived.length?Math.max(...derived.map(f=>f.confidence)):Math.max(...direct.map(f=>f.confidence))};}return {facts:[],method:"no-evidence",confidence:0};}
 
 export class CognitiveCore {
  constructor(memory=new CognitiveMemory()){
@@ -72,7 +72,7 @@ export class CognitiveCore {
    const fact=this.memory.learn(intent.teach.subject,intent.teach.relation,intent.teach.object,"user-stated",0.65);
    this.memory.rememberEpisode({type:"learning",summary:"A user supplied a fact",fact:{subject:fact.subject,relation:fact.relation,object:fact.object}});
    trace.push({stage:"memory-update",result:"stored user-stated fact"});
-   return {text:"Tui đã ghi nhận dữ kiện ông cung cấp: "+fact.subject+" "+fact.relation+" "+fact.object+". Nguồn: người dùng cung cấp; chưa xác minh độc lập.",trace,confidence:0.65};
+   return {text:"Tui đã lưu dữ kiện ông cung cấp: "+fact.subject+" "+fact.relation+" "+fact.object+". Nguồn: người dùng cung cấp; chưa xác minh độc lập.",trace,confidence:0.65};
   }
   if(intent.intent==="calculation"){const math=raw.replace(/^(tính|tinh|calculate|what is)\s+/i,"").replace(/[?？]+$/,"");try{const result=calculate(math);trace.push({stage:"reasoning",method:"arithmetic-expression-parser",result});return {text:"Kết quả: "+result,trace,confidence:1};}catch(e){return {text:"Tui chưa tính được biểu thức này: "+e.message,trace,confidence:0};}}
   if(intent.intent==="question-definition"){
