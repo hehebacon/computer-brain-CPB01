@@ -49,3 +49,17 @@ test("search client validates the Worker endpoint and refuses insecure remote UR
  client.configure("");
  assert.equal(client.configured,false);
 });
+
+
+test("concise answers retain supportive framing and stored context",()=>{
+ const answer=composeSearchAnswer("Trái Đất Mặt Trời",[
+  {title:"A",url:"https://a.example/page",snippet:"Tóm tắt về Trái Đất và Mặt Trời."},
+  {title:"B",url:"https://b.example/page",snippet:"Thông tin về Mặt Trời."}
+ ],{
+  preferences:{detail:"concise",tone:"formal",language:"vi"},
+  userAffect:{score:-65},
+  memoryFacts:[{subject:"Trái Đất",relation:"quay quanh",object:"Mặt Trời"}]
+ });
+ assert.match(answer.text,/Tôi sẽ trình bày/);
+ assert.match(answer.text,/Ngữ cảnh cục bộ đã lưu/);
+});
