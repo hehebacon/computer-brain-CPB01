@@ -65,7 +65,8 @@ function hasPhrase(text,phrase){
  const p=fold(phrase);
  if(!p)return false;
  if(/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af\u0400-\u04ff\u0600-\u06ff\u0900-\u097f]/.test(p))return text.includes(p);
- return (" "+text+" ").includes(" "+p+" ");
+ const clean=value=>value.replace(/[^\p{L}\p{M}\p{N}]+/gu," ").replace(/\s+/g," ").trim();
+ return (" "+clean(text)+" ").includes(" "+clean(p)+" ");
 }
 function negatedBefore(text,phrase){
  const p=fold(phrase),index=text.indexOf(p);
