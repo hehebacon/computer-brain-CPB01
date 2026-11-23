@@ -115,3 +115,15 @@ This is an early symbolic cognitive architecture, not a human mind and not gener
 The design keeps capabilities bounded: no unrestricted self-modification, self-replication, shell access, or autonomous external actions. New capabilities should be added as testable, permission-limited subsystems.
 
 Run all tests with `npm test`.
+
+## Human Cognitive Systems (HCS) v0.1
+
+The kernel now includes a separate, inspectable HCS layer:
+- Emotion Perception: heuristic multi-label estimates for joy, sadness, anger, fear, surprise, confusion, gratitude, and curiosity. Estimates include confidence, intensity, and an explicit uncertainty caveat.
+- Familiarity Model: counts local interaction turns, estimates a coarse familiarity tier, and tracks broad communication style. It does not represent affection, identity, or a real personal relationship.
+- Intent & Question Recognition: identifies question forms such as definition, cause, location, time, method, quantity, and yes/no.
+- Dialogue Act Recognition: greeting, thanks, apology, request, disagreement, question, or statement.
+- Attention Signals: extracts a small set of salient terms for the current turn.
+- Self-Monitoring: exposes uncertainty and clarification signals.
+
+HCS state is persisted in the same browser-local memory record. All recognition is heuristic and language coverage is incomplete. Emotion estimates must not be treated as verified facts about a speaker. HCS is a functional software model, not evidence of consciousness or subjective feelings.
