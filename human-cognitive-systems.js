@@ -1,4 +1,4 @@
-/* CPB-01 Human Cognitive Systems (HCS) v0.2
+/* CPB-01 Human Cognitive Systems (HCS) v0.3
  * Multilingual text-signal estimates and a bounded, inspectable affect meter.
  * This models software state; it does not claim subjective feelings.
  */
