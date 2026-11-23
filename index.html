@@ -76,7 +76,8 @@ main{flex:1;display:flex;flex-direction:column;gap:16px;padding:22px 0}.intro,.c
 <section class="control-panel">
  <label for="code-title">Tên tài liệu</label><input class="panel-input" id="code-title" value="CPB-01 code sample">
  <label for="code-template">Mẫu khởi đầu</label><select class="panel-input" id="code-template"><option value="">Tự viết</option><option value="html-starter">HTML starter</option><option value="javascript-module">JavaScript module</option><option value="python-script">Python script</option><option value="css-theme">CSS theme</option><option value="readme">README Markdown</option></select>
- <label for="code-language">Ngôn ngữ</label><select class="panel-input" id="code-language"><option value="html">HTML</option><option value="javascript">JavaScript</option><option value="css">CSS</option><option value="python">Python (Markdown only)</option></select>
+ <div class="fileline"><button class="secondary" id="load-code-file" type="button">Nạp tệp code cục bộ…</button><input id="code-file" type="file" accept=".html,.htm,.css,.js,.mjs,.cjs,.py,.json,.md,.txt,text/*,application/json" hidden></div>
+ <label for="code-language">Ngôn ngữ</label><select class="panel-input" id="code-language"><option value="html">HTML</option><option value="javascript">JavaScript</option><option value="css">CSS</option><option value="json">JSON (kiểm tra cú pháp)</option><option value="markdown">Markdown</option><option value="python">Python (Markdown only)</option></select>
  <label for="code-source">Mã nguồn (JavaScript chạy trong Worker; HTML xem tĩnh)</label><textarea class="panel-input" id="code-source" rows="7" spellcheck="false"><!doctype html>
 <html><head><meta charset="utf-8"><style>body{font:16px system-ui;padding:24px;background:#101827;color:#eaf2ff}h1{color:#77e0bd}</style></head><body><h1>CPB-01 Sandbox</h1><p>Thay đoạn code này để xem thử.</p></body></html></textarea>
  <label for="sandbox-timeout">Giới hạn thời gian Worker (ms, tối đa 8.000)</label><input class="panel-input" id="sandbox-timeout" type="number" min="250" max="8000" step="250" value="2500">
@@ -94,7 +95,7 @@ main{flex:1;display:flex;flex-direction:column;gap:16px;padding:22px 0}.intro,.c
 </main><div class="foot">CPB-01 là nguyên mẫu xác định. OCR, chuyển giọng nói thành chữ, phân tích cảnh video và trích xuất PDF/Office cần adapter chuyên dụng chưa được cài.</div></div>
 <script type="module">
 import "./brain.js";
-import { CodeWorkbench, CODE_TEMPLATES, mountSandbox } from "./code-workbench.js";
+import { CodeWorkbench, CODE_TEMPLATES, CODE_LIMITS, mountSandbox } from "./code-workbench.js";
 const codeWorkbench=new CodeWorkbench();
 const messages=document.getElementById("messages"),input=document.getElementById("input"),files=document.getElementById("files"),drop=document.getElementById("drop");
 function add(text,who){const el=document.createElement("div");el.className="msg "+who;const meta=document.createElement("div");meta.className="meta";meta.textContent=who==="user"?"BẠN":"CPB-01 · KERNEL";const body=document.createElement("div");body.textContent=text;el.append(meta,body);messages.append(el);messages.scrollTop=messages.scrollHeight;}
@@ -187,6 +188,24 @@ document.getElementById("code-template").addEventListener("change",event=>{
  document.getElementById("code-source").value=template.code;
  document.getElementById("sandbox-status").textContent="Đã nạp mẫu "+template.filename+".";
 });
+const codeFileInput=document.getElementById("code-file");
+document.getElementById("load-code-file").addEventListener("click",()=>codeFileInput.click());
+codeFileInput.addEventListener("change",async()=>{
+ const file=codeFileInput.files?.[0];if(!file)return;
+ if(file.size>CODE_LIMITS.maxBytes){document.getElementById("sandbox-status").textContent="Tệp vượt quá giới hạn "+CODE_LIMITS.maxBytes+" byte.";codeFileInput.value="";return;}
+ const ext=(file.name.split(".").pop()||"").toLowerCase();
+ const language={html:"html",htm:"html",css:"css",js:"javascript",mjs:"javascript",cjs:"javascript",py:"python",json:"json",md:"markdown",txt:"markdown"}[ext]||"markdown";
+ try{
+  const source=await file.text();
+  document.getElementById("code-title").value=file.name;
+  document.getElementById("code-language").value=language;
+  document.getElementById("code-source").value=source;
+  document.getElementById("sandbox-status").textContent="Đã nạp "+file.name+" ("+file.size+" byte) từ máy này. Chưa tự chạy; hãy kiểm tra nội dung trước khi thử.";
+  document.getElementById("code-markdown").textContent="";
+  document.getElementById("code-markdown-preview").textContent="Bấm “Tạo Markdown” để dựng bản xem trước.";
+ }catch(error){document.getElementById("sandbox-status").textContent="Không đọc được tệp: "+error.message;}
+ finally{codeFileInput.value="";}
+});
 document.getElementById("make-markdown").addEventListener("click",()=>{
  const markdown=codeWorkbench.markdown({title:document.getElementById("code-title").value,language:document.getElementById("code-language").value,code:document.getElementById("code-source").value,notes:["Tạo bởi CPB-01 Code Workbench","Kiểm tra và thử nghiệm trước khi sử dụng"]});
  document.getElementById("code-markdown").textContent=markdown;
@@ -209,9 +228,12 @@ document.getElementById("run-sandbox").addEventListener("click",async()=>{
    if(stopSandbox)stopSandbox();
    stopSandbox=mountSandbox({iframe:document.getElementById("code-preview"),source:html,timeoutMs,onStatus:status=>{document.getElementById("sandbox-status").textContent="HTML preview: "+status+" · JavaScript và tài nguyên mạng bị chặn."; }});
    output.textContent="HTML preview chỉ hiển thị nội dung tĩnh; script và event handler đã bị loại bỏ.";
+  }else if(language==="json"){
+   try{const parsed=JSON.parse(source);output.textContent="JSON hợp lệ.\n\n"+JSON.stringify(parsed,null,2);document.getElementById("sandbox-status").textContent="Đã kiểm tra cú pháp JSON thành công.";}
+   catch(error){output.textContent="JSON lỗi: "+error.message;document.getElementById("sandbox-status").textContent="JSON không hợp lệ.";}
   }else{
-   output.textContent="Python hiện được tạo Markdown và tô màu cú pháp; chưa có Python runtime cài cục bộ.";
-   document.getElementById("sandbox-status").textContent="Chưa hỗ trợ chạy Python trong browser sandbox.";
+   output.textContent="Tệp "+language+" được giữ để tạo Markdown/xem trước; runtime tương ứng chưa được cài cục bộ.";
+   document.getElementById("sandbox-status").textContent="Chỉ hỗ trợ chạy JavaScript trong Worker; HTML/CSS xem tĩnh; JSON kiểm tra cú pháp.";
   }
  }catch(error){output.textContent="Không thể chạy: "+error.message;document.getElementById("sandbox-status").textContent="Sandbox error.";}
 });
