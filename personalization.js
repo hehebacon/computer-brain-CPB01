@@ -41,7 +41,7 @@ export class PersonalizationModel{
   let output=String(text??"");
   if(context.mode==="supportive"&&Number(context.confidence)<0.65)output="Tui sẽ trình bày từng bước, không kết luận vội nhé.\n"+output;
   else if(context.mode==="clarifying"&&Number(context.confidence)<0.6)output+="\nÔng có thể nói rõ đối tượng hoặc phạm vi câu hỏi để tui trả lời chính xác hơn.";
-  if(this.preferences.tone==="formal")output=output.replace(/\bTui\b/g,"Tôi").replace(/ông/giu,"bạn");
+  if(this.preferences.tone==="formal"||this.preferences.tone==="neutral")output=output.replace(/\bTui\b/g,"Tôi").replace(/ông/giu,"bạn");
   else if(this.preferences.tone==="casual")output=output.replace(/\bTôi\b/g,"Tui");
   return output;
  }
