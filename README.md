@@ -194,34 +194,48 @@ CPB-01 remains a deterministic prototype. Its search answerer is extractive/rule
 
 ## HCS v0.4 — elapsed-time mood and long-term trust
 
-- Short-term user affect and internal agent mood recover using elapsed wall-clock time, not only the arrival of neutral messages. The prototype uses a two-hour half-life for internal mood and a shorter affect half-life; an eight-hour pause should leave the short-term score near neutral.
-- The lastUpdatedAt timestamp is persisted with the state. Recovery is calculated lazily on the next read or interaction using Date.now().
-- Trust / Bond is a separate, non-negative reliability metric. Positive feedback and confirmed successful outcomes add small increments with a daily cap; explicit corrections or failed outcomes reduce it more sharply. It is a product-quality signal, not affection, friendship, or a real relationship.
-- Repeated identical corrections within a short window are deduplicated to avoid punishing one correction multiple times.
+- **User Mood** and **Agent Mood** are separate short-term state variables. Both use a 90-minute half-life and recover from elapsed wall-clock time through `Date.now()`. An eight-hour pause therefore normally returns a high starting score to neutral.
+- Each Mood stores `lastUpdatedAt` in the HCS export, which is persisted with the other local browser state. Recovery is calculated when the app opens, reads the state, or processes the next interaction; no neutral messages are required.
+- **Trust / Bond** is independent of Mood and does not decay with the short-term mood timer. It is a non-negative, practically unbounded reliability score (bounded by JavaScript's safe integer range). Explicit praise/thanks or externally confirmed success adds small increments, capped at +2 per day. An explicit correction or confirmed failed task causes a larger loss and adds trust debt.
+- Repeated identical corrections within five minutes are deduplicated. Bond is a measure of interaction quality and reliability, not affection, friendship, attachment, or a real relationship.
+- The public API exposes `CPB01.recordTaskOutcome(true|false, severity)` so another testable subsystem can record an independently confirmed task result. The kernel does not treat its own confidence score as proof of success.
 
 ## Symbolic Reasoning Engine
 
-reasoning-engine.js adds bounded and inspectable reasoning primitives:
-- Explicit IF/ELSE branch evaluation with a small allowlist of comparison operators; no eval().
-- Forward chaining from stored facts and registered rules, with maximum depth and fact-count limits.
-- Definition inference across stored category relations, provenance, confidence reduction, and contradiction detection.
-- This is symbolic rule execution, not open-ended human reasoning. A wrong premise can still produce a wrong conclusion, so derived results remain labeled and confidence-aware.
+`reasoning-engine.js` adds bounded and inspectable reasoning primitives:
+
+- Explicit IF/ELSE branch evaluation with three-valued logic: **true**, **false with explicit contradictory evidence**, and **unknown**. Missing facts are not automatically treated as false, so an unknown condition returns an undetermined branch instead of inventing an answer.
+- Compound `all`, `any`, and `not` conditions, plus a small allowlist of context comparisons. Rules are registered with `CPB01.registerRule(...)` and persisted locally.
+- Forward chaining from stored facts and registered rules, with a maximum inference depth, step count, and fact count. Derived facts keep rule IDs, premise references, confidence, and provenance.
+- This is explainable symbolic rule execution, not open-ended human reasoning. A wrong premise or incomplete rule can still produce a wrong conclusion, so derived results remain labeled and confidence-aware.
+
+Example rule:
+
+```js
+CPB01.registerRule({
+  id: "mammal-is-animal",
+  if: { subject: "Milo", relation: "là", object: "động vật có vú" },
+  then: { subject: "Milo", relation: "là", object: "động vật" },
+  confidence: 0.8
+});
+const result = CPB01.reason("Milo");
+```
 
 ## Local Code Workbench and sandbox
 
-code-workbench.js creates Markdown artifacts, a rendered Markdown preview, syntax-highlighted code blocks, and starter templates for HTML, JavaScript, Python, CSS, and README files.
+`code-workbench.js` creates Markdown artifacts, a rendered Markdown preview, syntax-highlighted code blocks, and starter templates for HTML, JavaScript, Python, CSS, and README files.
 
-- HTML preview is static-only. Script elements, inline event handlers, embedded frames, forms, and other active content are stripped; the iframe uses an opaque sandbox and restrictive CSP. It does not execute uploaded HTML scripts.
-- JavaScript snippets run in a DOM-less Web Worker. Common network and persistence APIs (fetch, XMLHttpRequest, WebSocket, IndexedDB, etc.) are disabled; console output is capped and the Worker is terminated after a configurable 250–8000 ms timeout.
+- HTML preview is **static-only**. Script elements, inline event handlers, embedded frames, forms, and other active content are stripped; the iframe uses an opaque sandbox and restrictive CSP. It does not execute uploaded HTML scripts.
+- JavaScript snippets run in a DOM-less Web Worker. Common network and persistence APIs (fetch, XMLHttpRequest, WebSocket, IndexedDB, etc.) are disabled where supported; console output is capped and the Worker is terminated after a configurable 250–8000 ms wall-clock timeout.
 - Python is formatted and previewed as Markdown only; no Python runtime is bundled. CSS can be previewed inside a static HTML shell.
 - This is a browser-level execution boundary, not a hardened operating-system/container sandbox. Do not use it as a substitute for reviewing untrusted code, and do not paste secrets into snippets. No shell, package installation, or host filesystem access is provided.
 
 ## Direct search without Worker or model tokens
 
-direct-search.js offers an optional browser-side adapter for Wikipedia's public MediaWiki search API. It requires no Cloudflare Worker, API key, or language-model call, and reports zero model-token usage. Search requests still leave the browser and go to Wikipedia; this is not offline search and the provider can apply its own rate limits.
+`direct-search.js` offers an optional browser-side adapter for Wikipedia's public MediaWiki search API. It requires no Cloudflare Worker, API key, or language-model call, and reports zero model-token usage. Search requests still leave the browser and go to Wikipedia; this is not offline search and the provider can apply its own rate limits.
 
-Public social-search links for Reddit, YouTube, X, Threads, and TikTok are constructed locally. They open each platform's public search page; they do not scrape content or access private posts, accounts, or messages. The separate Brave-backed Cloudflare Worker remains an optional broader web/social search route and may have provider usage costs. A Worker proxy itself does not consume model tokens; only a separate model API call would.
+Public social-search links for Reddit, YouTube, X, Threads, and TikTok are constructed locally. They open each platform's public search page; they do not scrape content or access private posts, accounts, or messages. This direct route does not automatically retrieve or summarize social posts. The separate Brave-backed Cloudflare Worker remains an optional broader web/social search route and may have provider usage costs. A Worker proxy itself does not consume model tokens; only a separate model API call would.
 
 ## End-to-end validation
 
-Run npm test and bash build.sh. The added tests/reasoning-workbench.test.mjs covers time-based recovery, trust updates, IF/ELSE and forward chaining, contradiction detection, Markdown generation, sandbox policy/size limits, and a complete cognitive memory-to-inference flow.
+Run `npm test` and `bash build.sh`. The added `tests/end-to-end.test.mjs` covers elapsed-time recovery, separate Mood and Bond state, explicit corrections, task outcomes, IF/ELSE and multi-step forward chaining, Markdown rendering, sandbox policy/size limits, Worker timeout termination, direct public search, and social search-link generation.
