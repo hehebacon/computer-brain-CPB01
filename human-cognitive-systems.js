@@ -234,6 +234,7 @@ export class AffectiveState{
  export(){return {score:this.score,lastEmotion:this.lastEmotion,lastSignal:this.lastSignal,lastUpdatedAt:this.lastUpdatedAt,updatedAt:this.lastUpdatedAt,source:this.source};}
 }
 const BOND_CORRECTIONS=["sai roi","ban noi sai","tra loi sai","khong dung","chua dung","not correct","incorrect","wrong answer","you are wrong","that is wrong","this is wrong","you made a mistake","that's incorrect","no es correcto","te has equivocado","c'est faux","ce n'est pas correct","das ist falsch","du liegst falsch","não está correto","isso está errado","non è corretto","это неверно","неправильно","هذا غير صحيح","यह गलत है"];
+const BOND_POSITIVE_SIGNALS=["noi chuyen voi ban vui","vui khi noi chuyen voi ban","thich tro chuyen voi ban","tui thich tro chuyen voi ban","ban lam minh vui","cam on da giup","i enjoy talking with you","i enjoy chatting with you","i like chatting with you","happy to chat with you","glad to talk with you","thanks for helping me","gracias por ayudarme","merci pour votre aide","danke für deine hilfe","話していて楽しい","和你聊天很开心","너와 대화해서 즐거워"];
 export class BondTrustModel{
  constructor(data={}){
   this.score=Math.max(0,Number(data.score)||0);
@@ -285,7 +286,7 @@ export class BondTrustModel{
    this.lastOutcome="duplicate-correction";
    this.lastUpdatedAt=at;
    return this.snapshot();
-  }else if(emotion.praiseDetected||classifyDialogueAct(input)==="thanks"){
+  }else if(emotion.praiseDetected||BOND_POSITIVE_SIGNALS.some(term=>text.includes(fold(term)))||classifyDialogueAct(input)==="thanks"){
    return this.recordOutcome({success:true,at});
   }else this.lastOutcome="neutral";
   this.lastUpdatedAt=at;
