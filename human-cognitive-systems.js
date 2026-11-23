@@ -195,14 +195,14 @@ export class AffectiveState{
   this.lastSignal=data.lastSignal||"neutral";
   this.lastUpdatedAt=Number(data.lastUpdatedAt||data.updatedAt)||Date.now();
   this.source=data.source||"baseline";
-  this.halfLifeMs=2*60*60*1000;
+  this.halfLifeMs=90*60*1000;
   this.recover(Date.now());
  }
  recover(at=Date.now()){
   const elapsed=Math.max(0,Number(at)-this.lastUpdatedAt);
   if(elapsed>0){
    this.score=Math.round(this.score*Math.pow(0.5,elapsed/this.halfLifeMs));
-   if(Math.abs(this.score)<1)this.score=0;
+   if(Math.abs(this.score)<3)this.score=0;
    this.lastUpdatedAt=Number(at);
   }
   return this.score;
@@ -233,35 +233,66 @@ export class AffectiveState{
  }
  export(){return {score:this.score,lastEmotion:this.lastEmotion,lastSignal:this.lastSignal,lastUpdatedAt:this.lastUpdatedAt,updatedAt:this.lastUpdatedAt,source:this.source};}
 }
+const BOND_CORRECTIONS=["sai roi","ban noi sai","tra loi sai","khong dung","chua dung","not correct","incorrect","wrong answer","you are wrong","that is wrong","this is wrong","you made a mistake","that's incorrect","no es correcto","te has equivocado","c'est faux","ce n'est pas correct","das ist falsch","du liegst falsch","não está correto","isso está errado","non è corretto","это неверно","неправильно","هذا غير صحيح","यह गलत है"];
 export class BondTrustModel{
  constructor(data={}){
   this.score=Math.max(0,Number(data.score)||0);
+  this.trustDebt=Math.max(0,Number(data.trustDebt)||0);
   this.lastUpdatedAt=Number(data.lastUpdatedAt)||Date.now();
   this.dailyGain=Number(data.dailyGain)||0;
   this.dayKey=data.dayKey||new Date(this.lastUpdatedAt).toISOString().slice(0,10);
+  this.positiveDays=Number(data.positiveDays)||0;
+  this.lastPositiveDay=data.lastPositiveDay||null;
   this.successes=Number(data.successes)||0;
   this.failures=Number(data.failures)||0;
+  this.corrections=Number(data.corrections)||0;
   this.lastOutcome=data.lastOutcome||"baseline";
+  this.lastCorrectionKey=data.lastCorrectionKey||"";
+  this.lastCorrectionAt=Number(data.lastCorrectionAt)||0;
  }
  recordOutcome({success,severity=1,at=Date.now()}={}){
   const date=new Date(at).toISOString().slice(0,10);
   if(date!==this.dayKey){this.dayKey=date;this.dailyGain=0;}
   if(success===true){
-   // Trust grows slowly and has a daily gain ceiling.
-   const gain=Math.min(2,Math.max(0,6-this.dailyGain));
-   this.score+=gain;this.dailyGain+=gain;this.successes++;this.lastOutcome="successful-task";
+   const gain=Math.min(1,Math.max(0,2-this.dailyGain));
+   this.score=Math.min(Number.MAX_SAFE_INTEGER,this.score+gain);
+   this.dailyGain+=gain;this.successes++;
+   if(date!==this.lastPositiveDay){
+    this.positiveDays=this.lastPositiveDay&&Math.round((Date.parse(date)-Date.parse(this.lastPositiveDay))/86400000)===1?this.positiveDays+1:1;
+    this.lastPositiveDay=date;
+   }
+   this.trustDebt=Math.max(0,this.trustDebt-0.1);
+   this.lastOutcome="confirmed-success";
   }else if(success===false){
-   // Repeated mistakes cost more than one successful turn can restore.
-   const penalty=6+clamp(Number(severity)||1,0,3)*8;
-   this.score=Math.max(0,this.score-penalty);this.failures++;this.lastOutcome="failed-task";
+   const severityValue=clamp(Number(severity)||1,0.5,3);
+   const penalty=Math.max(2,this.score*0.2)*severityValue;
+   this.score=Math.max(0,this.score-penalty);
+   this.trustDebt=Math.min(Number.MAX_SAFE_INTEGER,this.trustDebt+severityValue);
+   this.failures++;this.corrections++;
+   this.lastOutcome="failed-task";
   }else this.lastOutcome="neutral";
   this.lastUpdatedAt=Number(at);
   return this.snapshot(at);
  }
- snapshot(at=Date.now()){
-  return {score:this.score,minimum:0,maximum:null,lastUpdatedAt:this.lastUpdatedAt,successes:this.successes,failures:this.failures,lastOutcome:this.lastOutcome,dailyGain:this.dailyGain,meaning:"Chỉ số độ tin cậy tích lũy từ kết quả công việc; tăng chậm, giảm mạnh hơn khi có lỗi và không phải tình cảm hay quan hệ con người."};
+ observeFeedback(input,emotion=recognizeEmotion(input),at=Date.now()){
+  const text=fold(input),correction=BOND_CORRECTIONS.some(term=>text.includes(fold(term)));
+  if(correction){
+   const key=text.slice(0,180);
+   if(key!==this.lastCorrectionKey||at-this.lastCorrectionAt>5*60*1000){
+    this.lastCorrectionKey=key;this.lastCorrectionAt=at;
+    return this.recordOutcome({success:false,severity:1.5,at});
+   }
+  }else if(emotion.praiseDetected||classifyDialogueAct(input)==="thanks"){
+   return this.recordOutcome({success:true,at});
+  }else this.lastOutcome="neutral";
+  this.lastUpdatedAt=at;
+  return this.snapshot(at);
  }
- export(){return {score:this.score,lastUpdatedAt:this.lastUpdatedAt,dailyGain:this.dailyGain,dayKey:this.dayKey,successes:this.successes,failures:this.failures,lastOutcome:this.lastOutcome};}
+ snapshot(){
+  const score=this.score,level=score>=100?"well-established":score>=30?"established":score>=7?"building":"new";
+  return {score,minimum:0,maximum:null,unbounded:true,level,positiveDays:this.positiveDays,trustDebt:Number(this.trustDebt.toFixed(2)),dailyGain:this.dailyGain,successes:this.successes,failures:this.failures,corrections:this.corrections,lastOutcome:this.lastOutcome,lastUpdatedAt:this.lastUpdatedAt,meaning:"Chỉ số tin cậy dài hạn về chất lượng tương tác. Tăng tối đa chậm theo phản hồi/kết quả tích cực đã xác nhận; giảm mạnh hơn khi có lỗi được chỉ ra. Đây không phải tình cảm hay sự gắn bó thật."};
+ }
+ export(){return {score:this.score,trustDebt:this.trustDebt,lastUpdatedAt:this.lastUpdatedAt,dailyGain:this.dailyGain,dayKey:this.dayKey,positiveDays:this.positiveDays,lastPositiveDay:this.lastPositiveDay,successes:this.successes,failures:this.failures,corrections:this.corrections,lastOutcome:this.lastOutcome,lastCorrectionKey:this.lastCorrectionKey,lastCorrectionAt:this.lastCorrectionAt};}
 }
 export class AgentAffectModel{
  constructor(data={}){
@@ -281,10 +312,10 @@ export class AgentAffectModel{
   if(elapsed>0){this.score=Math.round(this.score*Math.pow(0.5,elapsed/this.halfLifeMs));if(Math.abs(this.score)<1)this.score=0;this.lastUpdatedAt=Number(at);}
   return this.score;
  }
- observeOutcome({confidence=0.2,isQuestion=false,hasEvidence=false}={},at=Date.now()){
+ observeOutcome({confidence=0.2,isQuestion=false,hasEvidence=false,error=false}={},at=Date.now()){
   this.recover(at);
   const certainty=clamp(Number(confidence)||0);
-  const delta=(certainty>=0.75?8:certainty>=0.45?2:-7)+(isQuestion?3:0)+(hasEvidence?2:0);
+  const delta=error?-22:(certainty>=0.75?8:certainty>=0.45?2:-7)+(isQuestion?3:0)+(hasEvidence?2:0);
   const next=clamp(this.score*0.88+delta,-100,100);
   this.score=Math.abs(next)<3?0:Math.round(next);
   this.confidence=Math.round(this.confidence*0.65+certainty*100*0.35);
@@ -292,7 +323,7 @@ export class AgentAffectModel{
   this.focus=Math.round(clamp(this.focus*0.7+25+certainty*50,0,100));
   this.cycles++;
   this.updatedAt=Number(at);this.lastUpdatedAt=Number(at);
-  this.lastState=certainty<0.3?"Thận trọng":isQuestion&&!hasEvidence?"Tò mò / tìm hiểu":certainty>=0.75?"Tập trung":"Ổn định";
+  this.lastState=error?"Sai sót cần khắc phục":certainty<0.3?"Thận trọng":isQuestion&&!hasEvidence?"Tò mò / tìm hiểu":certainty>=0.75?"Tập trung":"Ổn định";
   return this.snapshot();
  }
  set(score){
@@ -333,18 +364,18 @@ export class FamiliarityModel{
 export class HumanCognitiveSystems{
  constructor(data={}){this.familiarity=new FamiliarityModel(data.familiarity);this.affect=new AffectiveState(data.userAffect||data.affect);this.agentAffect=new AgentAffectModel(data.agentAffect);this.bond=new BondTrustModel(data.bond);this.lastProfile=null;}
  process(input){
-  const emotion=recognizeEmotion(input),question=classifyQuestion(input),dialogueAct=classifyDialogueAct(input),familiarity=this.familiarity.observe(input),affect=this.affect.observe(input,emotion),bond=this.bond.snapshot();
+  const emotion=recognizeEmotion(input),question=classifyQuestion(input),dialogueAct=classifyDialogueAct(input),familiarity=this.familiarity.observe(input),affect=this.affect.observe(input,emotion),bond=this.bond.observeFeedback(input,emotion);
   const attention=words(input).filter(w=>w.length>3).slice(-8);
   const language=question.language&&question.language!=="und"?question.language:emotion.language;
   this.lastProfile={emotion,question,dialogueAct,familiarity,affect,userAffect:affect,agentAffect:this.agentAffect.snapshot(),bond,language,attention,selfMonitoring:{uncertainty:Math.max(0,1-Math.max(emotion.confidence,question.confidence)),needsClarification:question.isQuestion&&question.confidence<0.55}};
   return this.lastProfile;
  }
  recordOutcome({confidence=0.2,question=this.lastProfile?.question,success,severity=1}={}){
-  const agentAffect=this.agentAffect.observeOutcome({confidence,isQuestion:Boolean(question?.isQuestion),hasEvidence:Number(confidence)>=0.65});
-  const inferredSuccess=success===undefined?(Number(confidence)>=0.75?true:Number(confidence)<0.3?false:undefined):success;
-  const bond=this.bond.recordOutcome({success:inferredSuccess,severity});
+  const correction=this.lastProfile?.bond?.lastOutcome==="failed-task";
+  const agentAffect=this.agentAffect.observeOutcome({confidence,isQuestion:Boolean(question?.isQuestion),hasEvidence:Number(confidence)>=0.65,error:correction});
+  const bond=success===undefined?this.bond.snapshot():this.bond.recordOutcome({success,severity});
   const userScore=this.affect.snapshot().score;
-  const adaptation=userScore<=-30?"supportive":question?.isQuestion&&question.confidence<0.6?"clarifying":agentAffect.confidence<40||agentAffect.focus<40?"cautious":this.lastProfile?.language?.language==="und"?"language-aware":"direct";
+  const adaptation=correction||agentAffect.confidence<40||agentAffect.focus<40?"cautious":userScore<=-30?"supportive":question?.isQuestion&&question.confidence<0.6?"clarifying":this.lastProfile?.language?.language==="und"?"language-aware":"direct";
   if(this.lastProfile){this.lastProfile.agentAffect=agentAffect;this.lastProfile.bond=bond;this.lastProfile.adaptation=adaptation;}
   return {agentAffect,bond,adaptation};
  }
