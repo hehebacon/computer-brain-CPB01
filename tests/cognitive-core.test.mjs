@@ -62,3 +62,38 @@ test("stores a statement but does not store a question as a fact",()=>{
  assert.equal(question.trace.find(x=>x.stage==="intent-classification").intent,"question-definition");
  assert.equal(memory.semantic.length,before+1);
 });
+
+import { HumanCognitiveSystems, recognizeEmotion, classifyQuestion } from "../human-cognitive-systems.js";
+
+test("HCS recognizes emotional language as uncertain signals",()=>{
+ const e=recognizeEmotion("Tui vui quá, tuyệt vời!");
+ assert.equal(e.primary,"joy");
+ assert.ok(e.confidence<1);
+ assert.ok(e.intensity>0);
+ assert.match(e.caveat,/Ước lượng/);
+});
+test("HCS classifies question types including unaccented Vietnamese",()=>{
+ assert.equal(classifyQuestion("Tai sao may bay co the bay?").type,"cause");
+ assert.equal(classifyQuestion("Trai Dat la gi").type,"definition");
+ assert.equal(classifyQuestion("Bao nhieu nguoi?").type,"quantity");
+ assert.equal(classifyQuestion("Hom nay vui qua").isQuestion,false);
+});
+test("HCS tracks interaction familiarity without describing a relationship",()=>{
+ const h=new HumanCognitiveSystems();
+ const first=h.process("Chào, tui muốn hỏi");
+ assert.equal(first.familiarity.level,"new");
+ h.process("Cảm ơn");
+ h.process("Tui muốn biết thêm");
+ const later=h.process("Giải thích tiếp nhé");
+ assert.equal(later.familiarity.level,"occasional");
+ assert.equal(later.familiarity.interactionCount,4);
+ assert.match(later.familiarity.meaning,/không phải mức độ tình cảm/);
+});
+test("HCS identifies dialogue acts and is integrated into cognitive traces",()=>{
+ const h=new HumanCognitiveSystems();
+ assert.equal(h.process("Cảm ơn nhé").dialogueAct,"thanks");
+ const core=new CognitiveCore(new CognitiveMemory());
+ const result=core.process("Tui đang lo lắng, giúp tui với",null);
+ assert.equal(core.lastHCS.emotion.primary,"fear");
+ assert.ok(result.trace.some(x=>x.stage==="human-cognitive-systems"));
+});
