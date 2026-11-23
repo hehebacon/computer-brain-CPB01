@@ -31,7 +31,7 @@ test("arithmetic parser handles precedence, parentheses and powers",()=>{
 test("arithmetic parser rejects division by zero and non-math syntax",()=>{
  const core=new CognitiveCore();
  assert.match(core.process("tính 9 / 0",null).text,/chia cho 0/);
- assert.match(core.process("tính 2 + abc",null).text,/không tính được/);
+ assert.match(core.process("tính 2 + abc",null).text,/chưa tính được/);
 });
 
 test("working state tracks conversational turns without claiming feelings",()=>{
