@@ -80,10 +80,90 @@ main{flex:1;display:flex;flex-direction:column;gap:16px;padding:22px 0}.intro,.c
 import "./brain.js";
 const messages=document.getElementById("messages"),input=document.getElementById("input"),files=document.getElementById("files"),drop=document.getElementById("drop");
 function add(text,who){const el=document.createElement("div");el.className="msg "+who;const meta=document.createElement("div");meta.className="meta";meta.textContent=who==="user"?"BẠN":"CPB-01 · KERNEL";const body=document.createElement("div");body.textContent=text;el.append(meta,body);messages.append(el);messages.scrollTop=messages.scrollHeight;}
-function stats(){const s=window.CPB01.stats(),a=s.affect||{score:0,label:"Bình thường",lastSignal:"neutral"};const score=Number(a.score)||0;document.getElementById("turns").textContent=s.turns;document.getElementById("facts").textContent=s.facts;document.getElementById("processed").textContent=s.processed;document.getElementById("emotion").textContent=s.lastCognitiveProfile?.emotion?.primary||"—";document.getElementById("language").textContent=s.lastCognitiveProfile?.language?.language||"und";document.getElementById("question-type").textContent=s.lastCognitiveProfile?.question?.type||"—";document.getElementById("familiarity").textContent=s.familiarity?.level||"new";document.getElementById("affect-label").textContent=a.label||"Bình thường";document.getElementById("affect-score").textContent=(score>0?"+":"")+score;document.getElementById("affect-control").value=String(score);document.getElementById("affect-fill").style.left=(score<0?50-Math.abs(score)/2:50)+"%";document.getElementById("affect-fill").style.width=(Math.abs(score)/2)+"%";document.getElementById("affect-fill").style.background=score<0?"#d47c87":"#77e0bd";document.getElementById("affect-signal").textContent="Tín hiệu gần nhất: "+(a.lastSignal||"trung tính")+(a.source==="manual-adjustment"?" · chỉnh tay":"");}
+let lastQuery="";
+function paintMeter(id,score,negative,positive){
+ const fill=document.getElementById(id+"-fill"),n=Number(score)||0;
+ fill.style.left=(n<0?50-Math.abs(n)/2:50)+"%";
+ fill.style.width=(Math.abs(n)/2)+"%";
+ fill.style.background=n<0?negative:positive;
+}
+function stats(){
+ const s=window.CPB01.stats(),a=s.userAffect||s.affect||{score:0,label:"Bình thường",lastSignal:"neutral"},agent=s.agentAffect||{score:0,label:"Ổn định",mode:"Ổn định",engagement:50,confidence:50,focus:50,cycles:0};
+ const score=Number(a.score)||0,agentScore=Number(agent.score)||0,p=s.personalization?.preferences||{};
+ document.getElementById("turns").textContent=s.turns;
+ document.getElementById("facts").textContent=s.facts;
+ document.getElementById("processed").textContent=s.processed;
+ document.getElementById("emotion").textContent=s.lastCognitiveProfile?.emotion?.primary||"—";
+ document.getElementById("language").textContent=s.lastCognitiveProfile?.language?.language||"und";
+ document.getElementById("question-type").textContent=s.lastCognitiveProfile?.question?.type||"—";
+ document.getElementById("familiarity").textContent=s.familiarity?.level||"new";
+ document.getElementById("affect-label").textContent=a.label||"Bình thường";
+ document.getElementById("affect-score").textContent=(score>0?"+":"")+score;
+ document.getElementById("affect-control").value=String(score);
+ paintMeter("affect",score,"#d47c87","#77e0bd");
+ document.getElementById("affect-signal").textContent="Tín hiệu gần nhất: "+(a.lastSignal||"trung tính")+(a.source==="manual-adjustment"?" · hiệu chỉnh tay":"");
+ document.getElementById("agent-label").textContent=agent.label||"Ổn định";
+ document.getElementById("agent-score").textContent=(agentScore>0?"+":"")+agentScore;
+ document.getElementById("agent-control").value=String(agentScore);
+ paintMeter("agent",agentScore,"#d47c87","#77e0bd");
+ document.getElementById("agent-mode").textContent=(agent.mode||"Ổn định")+" · Tập trung: "+agent.focus+" · Tự tin: "+agent.confidence+" · Chu kỳ: "+agent.cycles;
+ for(const [id,key] of [["reply-detail","detail"],["reply-tone","tone"],["reply-language","language"],["reply-examples","examples"]]){
+  if(document.activeElement!==document.getElementById(id)&&p[key])document.getElementById(id).value=p[key];
+ }
+ if(document.activeElement!==document.getElementById("search-endpoint"))document.getElementById("search-endpoint").value=s.searchEndpoint||"";
+ if(!s.searchConfigured)document.getElementById("search-state").textContent="Chưa cấu hình. Cài đặt Search Worker URL và khóa API phía máy chủ trước khi tìm.";
+ else document.getElementById("search-state").textContent="Search Worker đã cấu hình. Chế độ tìm kiếm: "+document.getElementById("search-mode").selectedOptions[0].textContent+".";
+}
 function summarize(r){const source=r.source||{},lines=["Đã phân tích đầu vào.","Tên: "+(source.name||"văn bản nhập trực tiếp"),"Loại: "+(r.kind||"unknown"),"Định dạng: "+(r.format||r.detectedFormat||"unknown"),"Trạng thái: "+r.status];if(r.language)lines.push("Ngôn ngữ: "+r.language.label);if(r.structure)lines.push("Cấu trúc: "+r.structure.words+" từ, "+r.structure.lines+" dòng");if(r.media){if(r.media.width&&r.media.height)lines.push("Kích thước: "+r.media.width+" × "+r.media.height);if(r.media.durationSeconds!==undefined)lines.push("Thời lượng: "+(r.media.durationSeconds===null?"không đọc được":r.media.durationSeconds+" giây"));}if(r.structure&&r.structure.preview)lines.push("Xem trước bảng: "+JSON.stringify(r.structure.preview.slice(0,3)));if(r.content&&r.content.raw)lines.push("Trích đoạn: "+r.content.raw.slice(0,700));if(r.limitations&&r.limitations.length)lines.push("Giới hạn:\n- "+r.limitations.join("\n- "));return lines.join("\n");}
-document.getElementById("affect-control").addEventListener("input",e=>{window.CPB01.setAffect(Number(e.currentTarget.value));stats();});document.getElementById("affect-reset").addEventListener("click",()=>{window.CPB01.resetAffect();stats();});
-document.getElementById("form").addEventListener("submit",e=>{e.preventDefault();const text=input.value.trim();if(!text)return;add(text,"user");input.value="";const result=window.CPB01.respond(text);add(result.text,"bot");stats();input.focus();});
+document.getElementById("affect-control").addEventListener("input",e=>{window.CPB01.setAffect(Number(e.currentTarget.value));stats();});
+document.getElementById("affect-reset").addEventListener("click",()=>{window.CPB01.resetAffect();stats();});
+document.getElementById("agent-control").addEventListener("input",e=>{window.CPB01.setAgentAffect(Number(e.currentTarget.value));stats();});
+document.getElementById("agent-reset").addEventListener("click",()=>{window.CPB01.resetAgentAffect();stats();});
+document.getElementById("save-preferences").addEventListener("click",()=>{
+ const result=window.CPB01.setPreferences({detail:document.getElementById("reply-detail").value,tone:document.getElementById("reply-tone").value,language:document.getElementById("reply-language").value,examples:document.getElementById("reply-examples").value});
+ document.getElementById("preference-state").textContent=result.changed?"Đã lưu tùy chọn cá nhân hóa.":"Tùy chọn đã được giữ nguyên.";
+ stats();
+});
+document.getElementById("save-search-endpoint").addEventListener("click",()=>{
+ try{
+  const endpoint=window.CPB01.configureSearch(document.getElementById("search-endpoint").value);
+  document.getElementById("search-state").textContent=endpoint?"Đã lưu địa chỉ Search Worker. Khóa API vẫn nằm ở phía Worker.":"Đã xóa cấu hình Search Worker.";
+  stats();
+ }catch(error){document.getElementById("search-state").textContent=error.message;}
+});
+async function searchAndAnswer(query){
+ const q=String(query||"").trim();
+ if(!q){document.getElementById("search-state").textContent="Hãy nhập câu hỏi trước khi tìm.";return;}
+ document.getElementById("search-state").textContent="Đang tìm nguồn công khai...";
+ try{
+  const mode=document.getElementById("search-mode").value;
+  const response=await window.CPB01.search(q,{mode,language:"vi",country:"VN",count:8});
+  const answer=window.CPB01.answerWithSearch(q,response.results);
+  add(answer.text+"\n\nPhân tích: "+answer.reasoning.method+" · độ bao phủ từ khóa "+answer.reasoning.averageLexicalCoverage+" · độ tin cậy bằng chứng: "+answer.evidenceConfidence,"bot");
+  if(answer.sources.length){
+   const list=document.createElement("div");list.className="source-list";
+   const heading=document.createElement("div");heading.className="source-meta";heading.textContent="NGUỒN THAM KHẢO · "+response.provider+" · "+response.mode;list.append(heading);
+   for(const source of answer.sources){
+    const link=document.createElement("a");link.href=source.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.title+" — "+source.source;
+    list.append(link);
+   }
+   messages.append(list);messages.scrollTop=messages.scrollHeight;
+  }
+  document.getElementById("search-state").textContent="Đã tìm "+response.results.length+" kết quả công khai. Mở nguồn để kiểm tra thông tin quan trọng.";
+ }catch(error){
+  document.getElementById("search-state").textContent="Tìm kiếm chưa thành công: "+error.message;
+  add("Không thể tìm kiếm lúc này: "+error.message,"bot");
+ }
+ stats();
+}
+document.getElementById("search-now").addEventListener("click",()=>searchAndAnswer(input.value.trim()||lastQuery));
+document.getElementById("form").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const text=input.value.trim();if(!text)return;
+ lastQuery=text;add(text,"user");input.value="";
+ const result=window.CPB01.respond(text);add(result.text,"bot");stats();input.focus();
+ if(document.getElementById("auto-search").checked&&result.reasoning.confidence<0.35&&result.cognitiveProfile?.question?.isQuestion&&window.CPB01.stats().searchConfigured)await searchAndAnswer(text);
+});
 document.querySelectorAll("[data-msg]").forEach(b=>b.addEventListener("click",()=>{input.value=b.dataset.msg;input.focus();}));
 async function handleFiles(list){for(const file of Array.from(list||[])){add("Tệp: "+file.name+" ("+file.size+" bytes)","user");try{const result=await window.CPB01.processFile(file);add(summarize(result),"bot");}catch(err){add("Không thể phân tích tệp: "+(err&&err.message||"lỗi không xác định"),"bot");}stats();}}
 document.getElementById("pick").addEventListener("click",()=>files.click());files.addEventListener("change",()=>{handleFiles(files.files);files.value="";});
