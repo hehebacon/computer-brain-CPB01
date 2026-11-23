@@ -116,7 +116,7 @@ const QUESTION_PREFIXES=[
  ["क्या है","definition","hi"],["कौन","person","hi"],["क्यों","cause","hi"],["कहाँ","location","hi"],["कब","time","hi"],["कितना","quantity","hi"],["कैसे","method-or-process","hi"],["क्या","definition-or-object","hi"]
 ].sort((a,b)=>b[0].length-a[0].length);
 export function classifyQuestion(input){
- const original=String(input??"").trim(),q=fold(original),hint=detectLanguageHint(original);
+ const original=String(input??"").trim(),q=fold(original).replace(/^[^\p{L}\p{M}\p{N}]+/u,""),hint=detectLanguageHint(original);
  const definition=q.match(/^(.+?)\s+(?:la gi|la ai|la cai gi|la con gi)\??$/);
  if(definition)return {isQuestion:true,type:"definition",target:original.replace(/\s+(?:là gì|la gi|là ai|la ai|là cái gì|la cai gi|là con gì|la con gi)\s*\??$/i,"").trim(),language:"vi",confidence:0.94};
  const match=QUESTION_PREFIXES.find(([prefix])=>q===prefix||q.startsWith(prefix+" ")||q.startsWith(prefix+"?")||q.startsWith(prefix+"？"));
@@ -147,7 +147,7 @@ function affectLabel(score,primary){
  if(n<9)return "Bình thường";
  const list=score>0?EMOTION_LABELS.positive:EMOTION_LABELS.negative;
  const level=list.find(x=>n>=x.min)?.label||"Bình thường";
- if(score<0&&primary==="anger"&&n>=26)return n>=56?"Tức giận":"Bực bội";
+ if(score<0&&(primary==="anger"||primary==="insult")&&n>=26)return n>=56?"Tức giận":"Bực bội";
  if(score<0&&primary==="sadness"&&n>=26)return n>=56?"Buồn sâu":"Buồn";
  return level;
 }
