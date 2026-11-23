@@ -29,7 +29,8 @@ export function buildTextRepresentation(text,meta={}){
  u.content={raw,normalized,normalization:{applied:[...(raw!==normalized?["line-ending-or-NFC"]:[])],lossy:false}};
  u.language=meta.language||u.language;u.scripts=meta.scripts||[];
  u.segments=textSegments(normalized);u.tokens=spans(normalized,wordPattern,"word");
- const attributes=meta.structure||{characters:normalized.length,words:u.tokens.length,lines:normalized.split("\n").length};\n u.structure={type:meta.structureType||"text",attributes,...attributes};
+ const attributes=meta.structure||{characters:normalized.length,words:u.tokens.length,lines:normalized.split("\n").length};
+ u.structure={type:meta.structureType||"text",attributes,...attributes};
  u.interpretation={status:meta.interpretationStatus||"not-performed",claims:[],entities:[],relations:[],uncertainties:meta.uncertainties||[]};
  u.provenance.stages=[{name:"decode",status:"complete",method:meta.encoding||"unicode-string"},{name:"normalize",status:"complete",method:"CRLF-to-LF + NFC; raw text retained"},{name:"format-detection",status:"complete",method:meta.detectionMethod||"extension/content heuristic"},{name:"structure-analysis",status:"complete",method:meta.format||"plain-text"}];
  u.provenance.transformations=u.content.normalization.applied;
@@ -40,7 +41,8 @@ export function buildTextRepresentation(text,meta={}){
 export function buildBinaryRepresentation(meta={}){
  const u=base(meta.source||{},meta.modality||"binary",meta.format||"unknown",meta.status||"recognized-needs-adapter");
  u.kind="file";u.content={raw:null,normalized:null,normalization:{applied:[],lossy:false}};
- const attributes=meta.structure||{};\n u.structure={type:meta.structureType||"binary",attributes,...attributes};
+ const attributes=meta.structure||{};
+ u.structure={type:meta.structureType||"binary",attributes,...attributes};
  u.provenance.stages=[{name:"signature-detection",status:"complete",method:meta.detectionMethod||"magic-bytes/extension"},{name:"content-extraction",status:"not-available",method:"adapter-required"}];
  u.interpretation={status:"not-performed",claims:[],entities:[],relations:[],uncertainties:["Binary content has not been extracted; no semantic claims are made."]};
  u.limitations=meta.limitations||["No content decoder is installed for this format."];
