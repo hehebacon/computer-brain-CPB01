@@ -63,7 +63,7 @@ test("stores a statement but does not store a question as a fact",()=>{
  assert.equal(memory.semantic.length,before+1);
 });
 
-import { HumanCognitiveSystems, recognizeEmotion, classifyQuestion, AffectiveState, detectLanguageHint } from "../human-cognitive-systems.js";
+import { HumanCognitiveSystems, recognizeEmotion, classifyQuestion, AffectiveState, detectLanguageHint, registerLanguagePack } from "../human-cognitive-systems.js";
 
 test("HCS recognizes emotional language as uncertain signals",()=>{
  const e=recognizeEmotion("Tui vui quá, tuyệt vời!");
@@ -143,4 +143,27 @@ test("cognitive intent pipeline recognizes multilingual questions without storin
  assert.equal(result.trace.find(x=>x.stage==="intent-classification").intent,"question");
  assert.equal(memory.semantic.length,before);
  assert.equal(core.lastHCS.question.type,"cause");
+});
+
+
+test("language packs can extend emotion, question and language recognition",()=>{
+ const registration=registerLanguagePack({
+  code:"xx",
+  cues:["zorb"],
+  emotions:{joy:["glimmerful"]},
+  praise:["you are zorb"],
+  questions:[{phrase:"zorbwhy",type:"cause"}],
+  dialogueActs:{thanks:["zorbthanks"]}
+ });
+ assert.equal(registration.registered,true);
+ assert.equal(detectLanguageHint("zorb phrase").language,"xx");
+ assert.equal(recognizeEmotion("glimmerful").primary,"joy");
+ assert.equal(recognizeEmotion("you are zorb").praiseDetected,true);
+ assert.equal(classifyQuestion("zorbwhy stars shine?").type,"cause");
+});
+
+test("CJK question prefixes are detected without spaces",()=>{
+ assert.equal(classifyQuestion("为什么天空是蓝色的？").type,"cause");
+ assert.equal(classifyQuestion("どうして空は青いの？").type,"cause");
+ assert.equal(classifyQuestion("什么是地球？").type,"definition");
 });
