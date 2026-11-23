@@ -72,7 +72,7 @@ import { DirectSearchAdapter, buildPublicSearchLinks } from "./direct-search.js"
   registerRule(rule){const added=core.registerRule(rule);save();return added;},
   reason(subject){return core.reason(subject);},
   runReasoning(){return core.runReasoning();},
-  decideIfElse(decision){return core.decideIfElse(decision);},
+  decideIfElse(decision,context={}){return core.decideIfElse(decision,context);},
   answerWithSearch(query,results){
    const preferences=personalization.snapshot().preferences;
    const detected=detectLanguageHint(query).language||core.lastHCS?.language?.language||"vi";
