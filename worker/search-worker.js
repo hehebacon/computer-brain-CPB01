@@ -25,7 +25,7 @@ function cors(origin){
 function cleanResult(item){
  const raw=item.url||item.profile?.long_name||"";
  let url;
- try{url=new URL(raw);if(url.protocol!=="https:")return null;}catch{return null;}
+ try{url=new URL(raw);if(url.protocol!=="https:"||url.username||url.password||["localhost","127.0.0.1","::1"].includes(url.hostname))return null;}catch{return null;}
  const host=url.hostname.replace(/^www\./,"");
  return {
   title:String(item.title||"Untitled result").slice(0,180),
@@ -83,7 +83,10 @@ export default {
   let data;
   try{data=await upstream.json();}catch{return reply({error:"Search provider response was not valid JSON."},502,cors(origin));}
   const raw=Array.isArray(data.web?.results)?data.web.results:[];
-  const results=raw.map(cleanResult).filter(Boolean).filter(x=>x.familyFriendly).slice(0,count);
+  const socialHost=host=>SOCIAL_SITES.some(site=>host===site||host.endsWith("."+site));
+  let results=raw.map(cleanResult).filter(Boolean).filter(x=>x.familyFriendly);
+  if(mode==="social")results=results.filter(x=>socialHost(x.source));
+  results=results.slice(0,count);
   return reply({
    query,
    mode,
