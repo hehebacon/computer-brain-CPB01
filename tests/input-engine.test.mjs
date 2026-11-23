@@ -23,11 +23,11 @@ test("recognizes PDF signature without claiming extraction",async()=>{
 import { validateRepresentation, UIR_VERSION } from "../universal-representation.js";
 
 test("returns a valid versioned UIR with loss-aware normalization",()=>{
- const raw="Xin chào\\r\\nThe sky is blue.";
+ const raw="Xin chào\r\nThe sky is blue.";
  const u=analyzeText(raw,"note.txt");
  assert.equal(u.schema,UIR_VERSION);
  assert.equal(u.content.raw,raw);
- assert.equal(u.content.normalized,"Xin chào\\nThe sky is blue.");
+ assert.equal(u.content.normalized,"Xin chào\nThe sky is blue.");
  assert.equal(validateRepresentation(u).valid,true);
  assert.ok(u.tokens.length>0);
  assert.ok(u.segments.length>0);
