@@ -201,3 +201,16 @@ test("IF/ELSE supports compound context conditions without treating missing fiel
  },[],{score:9});
  assert.equal(unknown.branch,"undetermined");
 });
+
+
+test("Bond accepts explicit friendly rapport feedback but ignores unrelated happiness",()=>{
+ const start=Date.UTC(2026,3,1,12);
+ const bond=new BondTrustModel({lastUpdatedAt:start});
+ const unrelated=recognizeEmotion("Hôm nay tui vui quá!");
+ bond.observeFeedback("Hôm nay tui vui quá!",unrelated,start);
+ assert.equal(bond.snapshot().score,0);
+ const rapport=recognizeEmotion("Tui thấy nói chuyện với bạn vui");
+ bond.observeFeedback("Tui thấy nói chuyện với bạn vui",rapport,start+86400000);
+ assert.equal(bond.snapshot().score,1);
+ assert.equal(bond.snapshot().positiveDays,1);
+});
