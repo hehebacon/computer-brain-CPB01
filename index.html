@@ -137,9 +137,9 @@ async function searchAndAnswer(query){
  document.getElementById("search-state").textContent="Đang tìm nguồn công khai...";
  try{
   const mode=document.getElementById("search-mode").value;
-  const response=await window.CPB01.search(q,{mode,language:"vi",country:"VN",count:8});
+  const response=await window.CPB01.search(q,{mode,country:"VN",count:8});
   const answer=window.CPB01.answerWithSearch(q,response.results);
-  add(answer.text+"\n\nPhân tích: "+answer.reasoning.method+" · độ bao phủ từ khóa "+answer.reasoning.averageLexicalCoverage+" · độ tin cậy bằng chứng: "+answer.evidenceConfidence,"bot");
+  add(answer.text+"\n\nPhân tích: "+answer.reasoning.method+" · độ bao phủ từ khóa "+answer.reasoning.averageLexicalCoverage+" · mức bao phủ: "+answer.searchCoverage,"bot");
   if(answer.sources.length){
    const list=document.createElement("div");list.className="source-list";
    const heading=document.createElement("div");heading.className="source-meta";heading.textContent="NGUỒN THAM KHẢO · "+response.provider+" · "+response.mode;list.append(heading);
