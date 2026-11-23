@@ -16,6 +16,9 @@ jobs:
         run: |
           node --check brain.js
           node --check cognitive-core.js
+          node --check reasoning-engine.js
+          node --check code-workbench.js
+          node --check direct-search.js
           node --check human-cognitive-systems.js
           node --check personalization.js
           node --check search-client.js
@@ -39,3 +42,6 @@ jobs:
           test -f dist/answer-synthesizer.js
           test -f dist/input-engine.js
           test -f dist/universal-representation.js
+          test -f dist/reasoning-engine.js
+          test -f dist/code-workbench.js
+          test -f dist/direct-search.js
