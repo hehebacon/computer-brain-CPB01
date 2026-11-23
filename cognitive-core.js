@@ -2,7 +2,7 @@
  * Explicit utterance classification, concept retrieval and provenance-aware answers.
  * A bounded symbolic prototype; not human-level cognition.
  */
-import { HumanCognitiveSystems } from "./human-cognitive-systems.js";
+import { HumanCognitiveSystems, classifyQuestion } from "./human-cognitive-systems.js";
 const norm=s=>String(s??"").normalize("NFC").toLocaleLowerCase("vi").trim();
 const fold=s=>norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
 const words=s=>(String(s).match(/[\p{L}\p{M}\p{N}_]+/gu)||[]);
@@ -37,6 +37,11 @@ export function classifyUtterance(input){
  const subject=questionSubject(text);
  if(subject)return {intent:"question-definition",subject,confidence:0.94};
  if(/^(tinh|calculate|what is)\s+/.test(q))return {intent:"calculation",confidence:0.95};
+ const multilingualQuestion=classifyQuestion(text);
+ if(multilingualQuestion.isQuestion){
+  if(multilingualQuestion.type==="definition"&&multilingualQuestion.target)return {intent:"question-definition",subject:multilingualQuestion.target,confidence:multilingualQuestion.confidence,language:multilingualQuestion.language};
+  return {intent:"question",confidence:multilingualQuestion.confidence,questionType:multilingualQuestion.type,language:multilingualQuestion.language};
+ }
  if(/^(xin chao|chao|hello|hi|hey)(\s|$)/.test(q))return {intent:"greeting",confidence:0.95};
  if(/(ban la ai|may la ai|ten gi|gioi thieu)/.test(q))return {intent:"identity-question",confidence:0.9};
  const teach=extractTeach(text);
