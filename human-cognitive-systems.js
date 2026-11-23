@@ -282,6 +282,9 @@ export class BondTrustModel{
     this.lastCorrectionKey=key;this.lastCorrectionAt=at;
     return this.recordOutcome({success:false,severity:1.5,at});
    }
+   this.lastOutcome="duplicate-correction";
+   this.lastUpdatedAt=at;
+   return this.snapshot();
   }else if(emotion.praiseDetected||classifyDialogueAct(input)==="thanks"){
    return this.recordOutcome({success:true,at});
   }else this.lastOutcome="neutral";
