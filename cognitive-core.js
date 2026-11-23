@@ -78,7 +78,7 @@ export class CognitiveCore {
   if(intent.intent==="question-definition"){
    const result=infer(this.memory,intent.subject);const facts=result.facts;
    trace.push({stage:"memory-retrieval",matches:facts.length},{stage:"reasoning",method:result.method,confidence:result.confidence});
-   if(facts.length){const lines=facts.map(f=>f.subject+" "+f.relation+" "+f.object+".");const sources=[...new Set(facts.map(f=>f.source))];const note=sources.includes("user-stated")?" Có dữ kiện do người dùng cung cấp, chưa được xác minh.":sources.includes("builtin-knowledge")?" Dựa trên tri thức nền được đóng gói trong nguyên mẫu.":"";return {text:lines.join("\n")+note,trace,confidence:result.confidence};}
+   if(facts.length){const lines=facts.map(f=>f.subject+" "+f.relation+" "+f.object+".");const sources=[...new Set(facts.map(f=>f.source))];const note=sources.includes("user-stated")?" Có dữ kiện do người dùng cung cấp, chưa được xác minh.":sources.includes("builtin-knowledge")?" Dựa trên tri thức nền được đóng gói trong nguyên mẫu.":"";return {text:lines.join("\n")+note+(result.method.includes("two-link-inference")?" Đây là suy luận từ hai quan hệ đã lưu, chưa phải xác minh thực tế.":""),trace,confidence:result.confidence};}
    return {text:"Tui chưa có đủ dữ kiện để định nghĩa “"+intent.subject+"”. Tui sẽ không tự bịa câu trả lời.",trace,confidence:0};
   }
   if(intent.intent==="greeting")return {text:"Chào ông. Tui đang nghe đây. Ông muốn tìm hiểu hay thử suy luận điều gì?",trace,confidence:0.9};
