@@ -249,3 +249,14 @@ test("IF/ELSE combines stored facts with context comparisons",()=>{
  },facts,{});
  assert.equal(unknown.branch,"undetermined");
 });
+
+
+test("CognitiveCore exposes context-aware IF/ELSE to callers",()=>{
+ const core=new CognitiveCore(new CognitiveMemory());
+ const result=core.decideIfElse({
+  if:{all:[{field:"confidence",op:"gte",value:0.7},{field:"ready",op:"eq",value:true}]},
+  then:"answer",
+  else:"hold"
+ },{confidence:0.92,ready:true});
+ assert.equal(result.branch,"then");
+});
