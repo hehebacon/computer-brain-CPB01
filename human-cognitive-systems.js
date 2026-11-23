@@ -166,7 +166,8 @@ export class AffectiveState{
  observe(input,emotion=recognizeEmotion(input)){
   const previous=Number(this.score)||0;
   const delta=Math.round(emotion.valence*(10+emotion.intensity*18));
-  this.score=Math.round(clamp(previous*0.84+delta,-100,100));
+  const next=clamp(previous*0.84+delta,-100,100);
+  this.score=Math.abs(next)<3?0:Math.round(next);
   this.lastEmotion=emotion.primary;
   this.lastSignal=emotion.praiseDetected?"compliment":emotion.insultDetected?"insult":emotion.primary;
   this.updatedAt=Date.now();
