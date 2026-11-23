@@ -63,7 +63,7 @@ test("stores a statement but does not store a question as a fact",()=>{
  assert.equal(memory.semantic.length,before+1);
 });
 
-import { HumanCognitiveSystems, recognizeEmotion, classifyQuestion } from "../human-cognitive-systems.js";
+import { HumanCognitiveSystems, recognizeEmotion, classifyQuestion, AffectiveState, detectLanguageHint } from "../human-cognitive-systems.js";
 
 test("HCS recognizes emotional language as uncertain signals",()=>{
  const e=recognizeEmotion("Tui vui quá, tuyệt vời!");
@@ -96,4 +96,51 @@ test("HCS identifies dialogue acts and is integrated into cognitive traces",()=>
  const result=core.process("Tui đang lo lắng, giúp tui với",null);
  assert.equal(core.lastHCS.emotion.primary,"fear");
  assert.ok(result.trace.some(x=>x.stage==="human-cognitive-systems"));
+});
+
+
+test("HCS detects praise and insults as separate sentiment signals",()=>{
+ const praise=recognizeEmotion("Bạn làm tốt lắm, tuyệt vời!");
+ assert.equal(praise.praiseDetected,true);
+ assert.ok(praise.valence>0);
+ const insult=recognizeEmotion("You are useless!");
+ assert.equal(insult.insultDetected,true);
+ assert.ok(insult.valence<0);
+});
+
+test("affect meter rises, falls toward neutral, and supports bounded manual adjustment",()=>{
+ const affect=new AffectiveState();
+ const positive=recognizeEmotion("You are amazing!");
+ assert.ok(affect.observe("You are amazing!",positive).score>0);
+ const high=affect.set(100);
+ assert.equal(high.score,100);
+ affect.set(-100);
+ assert.equal(affect.snapshot().score,-100);
+ affect.reset();
+ assert.equal(affect.snapshot().label,"Bình thường");
+ assert.equal(affect.snapshot().score,0);
+ for(let i=0;i<6;i++)affect.observe("Bạn làm tốt lắm, tuyệt vời!");
+ assert.ok(affect.snapshot().score>25);
+ for(let i=0;i<30;i++)affect.observe("Hôm nay trời quang.");
+ assert.equal(affect.snapshot().score,0);
+});
+
+test("HCS classifies common question patterns across supported languages",()=>{
+ assert.equal(classifyQuestion("Why does Earth orbit the Sun?").type,"cause");
+ assert.equal(classifyQuestion("¿Dónde está la estación?").type,"location");
+ assert.equal(classifyQuestion("Warum ist der Himmel blau?").type,"cause");
+ assert.equal(classifyQuestion("为什么天空是蓝色的？").type,"cause");
+ assert.equal(classifyQuestion("なぜ空は青いのですか？").type,"cause");
+ assert.equal(classifyQuestion("왜 하늘은 파란가요?").type,"cause");
+ assert.equal(detectLanguageHint("なぜ空は青いのですか？").language,"ja");
+});
+
+test("cognitive intent pipeline recognizes multilingual questions without storing them as facts",()=>{
+ const memory=new CognitiveMemory();
+ const core=new CognitiveCore(memory);
+ const before=memory.semantic.length;
+ const result=core.process("Why does Earth orbit the Sun?",null);
+ assert.equal(result.trace.find(x=>x.stage==="intent-classification").intent,"question");
+ assert.equal(memory.semantic.length,before);
+ assert.equal(core.lastHCS.question.type,"cause");
 });
