@@ -4,6 +4,7 @@
  */
 const norm=value=>String(value??"").normalize("NFC").toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").trim();
 const key=f=>[f.subject,f.relation,f.object].map(norm).join("|");
+const CATEGORY_RELATIONS=new Set(["la","is-a","thuoc nhom","belongs-to","thuoc"]);
 const clamp01=n=>Math.max(0,Math.min(1,Number(n)||0));
 const factMatches=(pattern,fact)=>["subject","relation","object"].every(k=>pattern[k]==="*"||pattern[k]===undefined||norm(pattern[k])===norm(fact[k]));
 export class ReasoningEngine{
@@ -125,6 +126,15 @@ export class ReasoningEngine{
   const direct=all.filter(f=>norm(f.subject)===norm(subject));
   const chained=this.forwardChain(all);
   const derived=chained.facts.filter(f=>f.derived&&norm(f.subject)===norm(subject));
+  // Preserve the original transparent two-link category inference: A is-a B; B belongs-to C => A has inferred category C.
+  for(const first of direct){
+   if(!CATEGORY_RELATIONS.has(norm(first.relation)))continue;
+   for(const second of all){
+    if(norm(second.subject)===norm(first.object)&&CATEGORY_RELATIONS.has(norm(second.relation))){
+     derived.push({subject:first.subject,relation:"có quan hệ suy ra là",object:second.object,source:"two-link-inference",confidence:Math.min(Number(first.confidence)||0,Number(second.confidence)||0)*0.8,derived:true,rule:"transitive-category-link"});
+    }
+   }
+  }
   const facts=[],seen=new Set();
   for(const fact of [...direct,...derived]){const k=key(fact);if(!seen.has(k)){seen.add(k);facts.push(fact);}}
   const conflicts=[];
