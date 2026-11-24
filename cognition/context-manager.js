@@ -1,6 +1,6 @@
 /* CPB-01 Context Manager: bounded, explicit conversation context. */
 const fold=s=>String(s??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLocaleLowerCase("vi");
-const STOP=new Set("la gi la cai gi la ai tai sao vi sao nhu the nao the nao lam sao con thi vay sao tui ban minh toi cua va voi cho trong mot nhung cac".split(" "));
+const STOP=new Set("la gi la cai gi la ai tai sao vi sao nhu the nao the nao lam sao bao nhieu o dau khi nao co the ban tui minh toi cua va voi cho trong mot nhung cac".split(" "));
 const terms=s=>(fold(s).match(/[\p{L}\p{N}]+/gu)||[]).filter(x=>x.length>2&&!STOP.has(x));
 export class ContextManager{
  constructor(data={}){this.maxTurns=12;this.turns=Array.isArray(data.turns)?data.turns.slice(-this.maxTurns):[];this.currentTopic=data.currentTopic||null;this.pendingQuestion=data.pendingQuestion||null;this.lastAnswer=data.lastAnswer||null;}
@@ -14,12 +14,13 @@ export class ContextManager{
   }).sort((a,b)=>b.score-a.score);
   if(ranked[0]?.score>0)return ranked[0].subject;
   const cleaned=String(text).replace(/[?？!！.。]+$/,"").trim();
-  if(cleaned.length>1&&cleaned.length<80&&!/^(tai sao|vi sao|why|how|what|where|when|con|the con|vay con)\b/i.test(fold(cleaned)))return cleaned;
+  const topicCandidate=cleaned.replace(/^(?:tai sao|vi sao|why(?:\s+do)?|how(?:\s+does)?|what(?:\s+is|\s+are)?|where(?:\s+is)?|when(?:\s+is)?)\s+/i,"").replace(/^(?:cac|the|a|an)\s+/i,"").trim();
+  if(topicCandidate.length>1&&topicCandidate.length<80&&!/^(con|the con|vay con)\b/i.test(fold(topicCandidate)))return topicCandidate;
   return null;
  }
- observe({input,interpreted,result,memory}={}){
+ observe({input,interpreted,result,memory,preserveTopic=false}={}){
   const text=String(input||"");
-  const topic=this.inferTopic(text,memory);
+  const topic=preserveTopic?null:this.inferTopic(text,memory);
   if(topic)this.currentTopic=topic;
   if(result?.needsExternalEvidence)this.pendingQuestion={text:interpreted||text,topic:this.currentTopic,at:Date.now()};
   else if(result?.confidence>=0.45)this.pendingQuestion=null;
