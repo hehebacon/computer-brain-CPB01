@@ -5,7 +5,7 @@ import { understandInput } from "../cognition/input-understanding.js";
 import { evaluateResponse } from "../cognition/response-evaluator.js";
 
 test("evaluator selects a grounded greeting for the demonstrated typo",()=>{
- const raw="xuyn chao";
+ const raw="xuynnn chao";
  const representation=analyzeText(raw);
  const understanding=understandInput(raw,representation);
  const result={text:"Tui chưa hiểu rõ ý ông.",confidence:0.15,trace:[
