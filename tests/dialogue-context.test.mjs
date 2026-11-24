@@ -43,3 +43,10 @@ test("pending question context is recorded when local evidence is missing",()=>{
  assert.equal(result.conversationContext.pendingQuestion.text,"Vì sao các ngôi sao phát sáng?");
  assert.ok(result.trace.some(step=>step.stage==="context-management"));
 });
+
+test("context manager extracts a topic from a question without local facts",()=>{
+ const context=new ContextManager();
+ const snapshot=context.observe({input:"Why do stars shine?",interpreted:"Why do stars shine?",result:{needsExternalEvidence:true,text:"Need sources."},memory:new CognitiveMemory()});
+ assert.equal(snapshot.currentTopic,"stars shine");
+ assert.equal(snapshot.pendingQuestion.topic,"stars shine");
+});
