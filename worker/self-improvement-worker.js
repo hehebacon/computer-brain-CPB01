@@ -32,54 +32,65 @@ async function github(env,path,options={}) {
  if(!response.ok)throw new Error("GitHub API "+response.status+": "+String(body.message||"request failed").slice(0,180));
  return body;
 }
-async function writeAudit(db,event,data) {
+async function writeAudit(db,runId,event,data) {
  const previous=await db.prepare("SELECT event_hash,sequence FROM update_events ORDER BY sequence DESC LIMIT 1").first();
- const body={sequence:(previous?.sequence||0)+1,event,at:new Date().toISOString(),data,previousHash:previous?.event_hash||"0".repeat(64)};
+ const body={sequence:(previous?.sequence||0)+1,runId,event,at:new Date().toISOString(),data,previousHash:previous?.event_hash||"0".repeat(64)};
  const bytes=new TextEncoder().encode(JSON.stringify(body));
  const digest=await crypto.subtle.digest("SHA-256",bytes);
  const hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
  await db.prepare("INSERT INTO update_events(run_id,event,event_at,payload_json,previous_hash,event_hash) VALUES(?,?,?,?,?,?)")
-  .bind("scheduled-learning",event,body.at,JSON.stringify(data),body.previousHash,hash).run();
+  .bind(runId,event,body.at,JSON.stringify(data),body.previousHash,hash).run();
 }
 export default {
  async scheduled(controller,env,ctx) {
   ctx.waitUntil((async()=>{
    if(!env.DB||!env.BRAVE_SEARCH_API_KEY)throw new Error("D1 and BRAVE_SEARCH_API_KEY are required for scheduled research");
-   const topics=await env.DB.prepare("SELECT id,topic FROM research_topics WHERE enabled=1 ORDER BY last_run_at IS NOT NULL, last_run_at LIMIT 3").all();
-   for(const row of topics.results||[]) {
-    const started=new Date().toISOString();
-    try {
-     const params=new URLSearchParams({q:row.topic,count:"5",safesearch:"strict",country:"VN",search_lang:"vi"});
-     const response=await fetch("https://api.search.brave.com/res/v1/web/search?"+params,{headers:{"X-Subscription-Token":env.BRAVE_SEARCH_API_KEY,"Accept":"application/json"}});
-     if(!response.ok)throw new Error("Search provider HTTP "+response.status);
-     const payload=await response.json();
-     const results=(payload.web?.results||[]).slice(0,5);
-     for(const result of results) {
-      let url;try{url=new URL(result.url);}catch{continue;}
-      if(url.protocol!=="https:"||url.username||url.password)continue;
-      const sourceId=url.href;
-      const family=url.hostname.toLowerCase();
-      await env.DB.prepare("INSERT INTO knowledge_sources(id,url,title,publisher,authority,family,retrieved_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,publisher=excluded.publisher,retrieved_at=excluded.retrieved_at")
-       .bind(sourceId,sourceId,String(result.title||"").slice(0,240),family,0.25,family,started).run();
-      const claim=String(result.description||"").replace(/\\s+/g," ").trim().slice(0,1500);
-      if(!claim)continue;
-      const itemId=sourceId;
-      await env.DB.prepare("INSERT INTO knowledge_items(id,claim,kind,confidence,evidence_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET claim=excluded.claim,updated_at=excluded.updated_at")
-       .bind(itemId,claim,"claim",0.25,"UNVERIFIED",started,started).run();
-      await env.DB.prepare("INSERT OR IGNORE INTO knowledge_evidence(item_id,source_id,independent_group) VALUES(?,?,?)")
-       .bind(itemId,sourceId,family).run();
+   const runId="research-"+crypto.randomUUID();
+   await env.DB.prepare("INSERT INTO update_runs(run_id,status,started_at) VALUES(?,?,?)")
+    .bind(runId,"RUNNING",new Date().toISOString()).run();
+   let failures=0;
+   try {
+    const topics=await env.DB.prepare("SELECT id,topic FROM research_topics WHERE enabled=1 ORDER BY last_run_at IS NOT NULL, last_run_at LIMIT 3").all();
+    for(const row of topics.results||[]) {
+     const started=new Date().toISOString();
+     try {
+      const params=new URLSearchParams({q:row.topic,count:"5",safesearch:"strict",country:"VN",search_lang:"vi"});
+      const response=await fetch("https://api.search.brave.com/res/v1/web/search?"+params,{headers:{"X-Subscription-Token":env.BRAVE_SEARCH_API_KEY,"Accept":"application/json"}});
+      if(!response.ok)throw new Error("Search provider HTTP "+response.status);
+      const payload=await response.json();
+      const results=(payload.web?.results||[]).slice(0,5);
+      for(const result of results) {
+       let url;try{url=new URL(result.url);}catch{continue;}
+       if(url.protocol!=="https:"||url.username||url.password)continue;
+       const sourceId=url.href;
+       const family=url.hostname.toLowerCase();
+       await env.DB.prepare("INSERT INTO knowledge_sources(id,url,title,publisher,authority,family,retrieved_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,publisher=excluded.publisher,retrieved_at=excluded.retrieved_at")
+        .bind(sourceId,sourceId,String(result.title||"").slice(0,240),family,0.25,family,started).run();
+       const claim=String(result.description||"").replace(/\\s+/g," ").trim().slice(0,1500);
+       if(!claim)continue;
+       const itemId=sourceId;
+       await env.DB.prepare("INSERT INTO knowledge_items(id,claim,kind,confidence,evidence_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET claim=excluded.claim,updated_at=excluded.updated_at")
+        .bind(itemId,claim,"claim",0.25,"UNVERIFIED",started,started).run();
+       await env.DB.prepare("INSERT OR IGNORE INTO knowledge_evidence(item_id,source_id,independent_group) VALUES(?,?,?)")
+        .bind(itemId,sourceId,family).run();
+      }
+      await env.DB.prepare("UPDATE research_topics SET last_run_at=?,last_status='ok' WHERE id=?").bind(new Date().toISOString(),row.id).run();
+      await writeAudit(env.DB,runId,"scheduled-research-completed",{topicId:row.id,resultCount:results.length});
+     } catch(error) {
+      failures++;
+      await env.DB.prepare("UPDATE research_topics SET last_run_at=?,last_status=? WHERE id=?").bind(new Date().toISOString(),String(error?.message||error).slice(0,240),row.id).run();
+      await writeAudit(env.DB,runId,"scheduled-research-failed",{topicId:row.id,error:String(error?.message||error).slice(0,240)});
      }
-     await env.DB.prepare("UPDATE research_topics SET last_run_at=?,last_status='ok' WHERE id=?").bind(new Date().toISOString(),row.id).run();
-     await writeAudit(env.DB,"scheduled-research-completed",{topicId:row.id,resultCount:results.length});
-    } catch(error) {
-     await env.DB.prepare("UPDATE research_topics SET last_run_at=?,last_status=? WHERE id=?").bind(new Date().toISOString(),String(error?.message||error).slice(0,240),row.id).run();
-     await writeAudit(env.DB,"scheduled-research-failed",{topicId:row.id,error:String(error?.message||error).slice(0,240)});
     }
+    await env.DB.prepare("UPDATE update_runs SET status=?,finished_at=? WHERE run_id=?")
+     .bind(failures?"PARTIAL":"COMPLETED",new Date().toISOString(),runId).run();
+   } catch(error) {
+    await env.DB.prepare("UPDATE update_runs SET status='FAILED',finished_at=? WHERE run_id=?")
+     .bind(new Date().toISOString(),runId).run();
+    throw error;
    }
   })());
  },
-
-
  async fetch(request,env) {
   const url=new URL(request.url);
   if(request.method==="GET"&&url.pathname==="/health")
