@@ -24,7 +24,7 @@ test("blocks kernel, recovery, workflow and worker paths", () => {
 });
 
 test("blocks traversal and paths outside the allowlist", () => {
-  assert.equal(assessChangeSet(["modules/../kernel/core.js"]).allowed, false);
+  assert.throws(() => assessChangeSet(["modules/../kernel/core.js"]), /Unsafe repository path/);
   assert.equal(assessChangeSet(["brain.js"]).reason, "PATH_OUTSIDE_ALLOWLIST");
 });
 
