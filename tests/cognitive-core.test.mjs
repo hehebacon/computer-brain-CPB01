@@ -202,3 +202,22 @@ test("low internal confidence selects cautious response adaptation",()=>{
  assert.equal(outcome.adaptation,"cautious");
  assert.equal(outcome.agentAffect.mode,"Thận trọng");
 });
+
+test("answers common Vietnamese capability questions with grounded feature inventory",()=>{
+ const core=new CognitiveCore(new CognitiveMemory());
+ for(const prompt of ["ban lam dc gi","ban giup dc gi","Bạn làm được gì?"]){
+  const result=core.process(prompt,null);
+  assert.match(result.text,/phân tích/i);
+  assert.match(result.text,/ghi nhớ/i);
+  assert.match(result.text,/Giới hạn hiện tại/i);
+  assert.equal(result.trace.find(x=>x.stage==="intent-classification").intent,"capabilities-question");
+  assert.ok(result.confidence>=0.95);
+ }
+});
+
+test("responds directly to a recognized greeting without a generic low-confidence fallback",()=>{
+ const core=new CognitiveCore(new CognitiveMemory());
+ const result=core.process("xin chao",null);
+ assert.match(result.text,/Chào ông/);
+ assert.ok(result.confidence>=0.95);
+});
