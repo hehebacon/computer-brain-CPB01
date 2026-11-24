@@ -240,3 +240,34 @@ Public social-search links for Reddit, YouTube, X, Threads, and TikTok are const
 ## End-to-end validation
 
 Run `npm test` and `bash build.sh`. The added `tests/end-to-end.test.mjs` covers elapsed-time recovery, separate Mood and Bond state, explicit corrections, task outcomes, IF/ELSE and multi-step forward chaining, Markdown rendering, sandbox policy/size limits, Worker timeout termination, direct public search, and social search-link generation.
+
+
+## Evidence learning and bounded self-improvement
+
+The learning layer is intentionally evidence-first:
+- `learning/learning-engine.js` stores claims with provenance and states (`UNVERIFIED`, `SUPPORTED`, `CORROBORATED`, `CONFLICTED`, `REJECTED`).
+- `learning/source-verifier.js` assigns cautious source-quality hints. Institutional domains are not treated as proof.
+- `learning/research-agent.js` turns public search snippets into attributed candidate knowledge; snippets remain candidates, not verified facts.
+- `learning/association-engine.js` proposes lexical associations and explicitly labels them as candidates rather than causal facts.
+- `learning/d1-store.js` persists sources, claims, evidence and audit events to a Cloudflare D1 binding. Apply `migrations/0001_self_improvement.sql` before connecting it.
+
+The update lifecycle in `learning/self-improvement-runner.js` is adapter-driven: research, propose, assess paths, create a candidate, validate, write audit events, activate, or roll back. It requires an isolated validator and a durable audit sink supplied by the deployment. The browser does not receive GitHub credentials.
+
+### GitHub proposal broker
+
+`worker/self-improvement-worker.js` is a separate Cloudflare Worker entry point. It accepts authenticated text-only proposals, checks every path against a strict allowlist, creates a unique branch and opens a **draft pull request only**. It never merges or deploys.
+
+Configure these Worker secrets/variables:
+- `AGENT_API_SECRET`: a separate random API secret for the agent caller.
+- `GITHUB_TOKEN`: preferably a short-lived GitHub App installation token scoped to this repository, with Contents read/write, Pull requests read/write, Metadata read. Do not grant Actions, Administration, Secrets, or workflow permissions.
+- `GITHUB_REPOSITORY`: `owner/name`.
+
+The broker intentionally blocks `kernel/`, `recovery/`, `worker/`, `learning/`, `.github/`, build configuration, and root application entry points. Only `modules/`, `experiments/`, and `learning-data/` are writable. It creates draft PRs against `main`; CI and human review remain required before merging. Protect `main` and require CI checks in GitHub branch protection settings.
+
+### Recovery and audit
+
+`learning/update-audit-log.js` creates a SHA-256 hash chain. Store its records in D1 using `createD1Store(db).saveAudit(record)`; local browser storage is only a convenience copy and is not tamper-proof. Keep stable releases as protected Git tags or immutable R2 objects, with write access separate from the agent. A hash record verifies artifact identity but is not itself a backup.
+
+### Deployment boundary
+
+Pages serves the browser application. Deploy `worker/self-improvement-worker.js` as a separate Worker with its own secrets and D1 binding; do not put secrets in Pages variables exposed to browser JavaScript. The autonomous pipeline is not active merely by deploying the UI: a trusted server-side scheduler/agent must call the research and proposal stages, persist the audit chain, run isolated CI, and activate only after policy gates pass. The included runner is the lifecycle controller, not an autonomous model or an unlimited web crawler.
