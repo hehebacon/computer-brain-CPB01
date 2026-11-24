@@ -80,7 +80,7 @@ export class CognitiveCore {
   const contextBefore=this.context.snapshot();
   const resolution=this.dialogue.resolve(original,contextBefore);
   const result=this.processTurn(resolution.text,representation);
-  const contextAfter=this.dialogue.observe(original,resolution.text,result,this.context,this.memory);
+  const contextAfter=this.context.observe({input:original,interpreted:resolution.text,result,memory:this.memory,preserveTopic:resolution.usedContext});
   result.trace.unshift({stage:"dialogue-management",usedContext:resolution.usedContext,topic:resolution.topic,reason:resolution.reason,interpretedInput:resolution.text});
   result.trace.push({stage:"context-management",currentTopic:contextAfter.currentTopic,pendingQuestion:Boolean(contextAfter.pendingQuestion),turnCount:contextAfter.turnCount});
   result.conversationContext=contextAfter;
