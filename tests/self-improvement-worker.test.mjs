@@ -19,11 +19,11 @@ test("GitHub broker rejects protected paths before any GitHub API call",async()=
 test("scheduled research creates a valid update run before appending audit events",async()=>{
  const statements=[];
  const db={
-  prepare(sql){return {bind(...args){return {
+  prepare(sql){return {
    async first(){return null;},
    async all(){return {results:[{id:"topic-1",topic:"Cloudflare D1 documentation"}]};},
-   async run(){statements.push({sql,args});return {success:true};}
-  };}};}
+   bind(...args){return {async run(){statements.push({sql,args});return {success:true};}};}
+  };}
  };
  const original=globalThis.fetch;
  globalThis.fetch=async()=>new Response(JSON.stringify({web:{results:[]}}),{status:200,headers:{"content-type":"application/json"}});
