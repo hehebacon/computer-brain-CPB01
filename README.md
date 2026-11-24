@@ -271,3 +271,18 @@ The broker intentionally blocks `kernel/`, `recovery/`, `worker/`, `learning/`, 
 ### Deployment boundary
 
 Pages serves the browser application. Deploy `worker/self-improvement-worker.js` as a separate Worker with its own secrets and D1 binding; do not put secrets in Pages variables exposed to browser JavaScript. The autonomous pipeline is not active merely by deploying the UI: a trusted server-side scheduler/agent must call the research and proposal stages, persist the audit chain, run isolated CI, and activate only after policy gates pass. The included runner is the lifecycle controller, not an autonomous model or an unlimited web crawler.
+
+
+### Scheduled public research setup
+
+The same dedicated Worker supports a bounded `scheduled()` handler. In Cloudflare:
+1. Create a D1 database and execute `migrations/0001_self_improvement.sql`.
+2. Bind it to this Worker as `DB`.
+3. Add `BRAVE_SEARCH_API_KEY` as a Worker secret.
+4. Add a Cron Trigger such as `0 */6 * * *` (every six hours).
+5. Add topics explicitly in D1, for example:
+   `INSERT INTO research_topics(id,topic,enabled) VALUES('topic-001','official documentation for JavaScript modules',1);`
+
+Each scheduled run handles at most three enabled topics and up to five results per topic. It stores search snippets as `UNVERIFIED` candidate claims with their source URL; it does not treat snippets as facts and does not crawl arbitrary links. Research activity is recorded in the D1 hash-chain journal.
+
+The GitHub broker only creates draft PRs. A separate trusted proposal generator must submit reviewed text patches to `POST /propose` using the agent secret. Do not place that secret or GitHub token in the Pages frontend. The repository currently has no built-in general-purpose code-generation model, so automatic discovery and proposal execution require a separately configured, trusted generator. The CI gate and human-reviewed merge remain the activation boundary.
