@@ -18,7 +18,7 @@ import { UpdateAuditLog } from "./learning/update-audit-log.js";
  const memory=new CognitiveMemory();
  const learning=new LearningEngine();
  const associations=new AssociationEngine();
- const audit=new UpdateAuditLog({sink:async record=>{try{const data=JSON.parse(localStorage.getItem(AUDIT_KEY)||"{\\"records\\":[]}");data.records.push(record);data.tail=record.hash;localStorage.setItem(AUDIT_KEY,JSON.stringify(data));}catch{}}});
+ const audit=new UpdateAuditLog({sink:async record=>{try{const data=JSON.parse(localStorage.getItem(AUDIT_KEY)||'{"records":[]}');data.records.push(record);data.tail=record.hash;localStorage.setItem(AUDIT_KEY,JSON.stringify(data));}catch{}}});
  const state={turns:0,lastRepresentation:null};
  let saved=null;
  try{
@@ -87,7 +87,7 @@ import { UpdateAuditLog } from "./learning/update-audit-log.js";
   discoverAssociations(limit=100){return associations.discover(learning.export().items).slice(0,limit);},
   exportKnowledge(){return learning.export();},
   async recordUpdateEvent(event,data={}){const record=await audit.append({runId:data.runId||"manual",event,data});return record;},
-  updateAudit(){try{return JSON.parse(localStorage.getItem(AUDIT_KEY)||"{\\"records\\":[],\\"tail\\":null}");}catch{return {records:[],tail:null};}},
+  updateAudit(){try{return JSON.parse(localStorage.getItem(AUDIT_KEY)||'{"records":[],"tail":null}');}catch{return {records:[],tail:null};}},
   registerRule(rule){const added=core.registerRule(rule);save();return added;},
   reason(subject){return core.reason(subject);},
   runReasoning(){return core.runReasoning();},
