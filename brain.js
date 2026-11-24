@@ -50,7 +50,7 @@ import { understandInput } from "./cognition/input-understanding.js";
   result.trace.push({stage:"personalization-observation",changed:preferenceUpdate.changed,changes:preferenceUpdate.changes||{}});
   result.trace.push({stage:"agent-affect-adaptation",mode:adaptation.adaptation,agentState:adaptation.agentAffect.label,agentScore:adaptation.agentAffect.score});
   save();
-  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
+  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,needsExternalEvidence:!!result.needsExternalEvidence,searchQuery:result.searchQuery||null,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
  }
  window.CPB01={
   respond,
