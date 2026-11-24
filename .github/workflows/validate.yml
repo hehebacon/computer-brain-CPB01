@@ -15,6 +15,7 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check brain.js
+          node --check cognition/input-understanding.js
           node --check cognitive-core.js
           node --check reasoning-engine.js
           node --check code-workbench.js
@@ -59,6 +60,7 @@ jobs:
           bash build.sh
           test -f dist/index.html
           test -f dist/brain.js
+          test -f dist/cognition/input-understanding.js
           test -f dist/cognitive-core.js
           test -f dist/human-cognitive-systems.js
           test -f dist/personalization.js
