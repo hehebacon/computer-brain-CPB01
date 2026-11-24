@@ -5,6 +5,8 @@
 import { HumanCognitiveSystems, classifyQuestion } from "./human-cognitive-systems.js";
 import { ReasoningEngine } from "./reasoning-engine.js";
 import { planAnswer } from "./cognition/answer-planner.js";
+import { ContextManager } from "./cognition/context-manager.js";
+import { DialogueManager } from "./cognition/dialogue-manager.js";
 const norm=s=>String(s??"").normalize("NFC").toLocaleLowerCase("vi").trim();
 const fold=s=>norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
 const words=s=>(String(s).match(/[\p{L}\p{M}\p{N}_]+/gu)||[]);
@@ -65,7 +67,7 @@ function infer(memory,subject,reasoner=new ReasoningEngine()){return reasoner.in
 
 export class CognitiveCore {
  constructor(memory=new CognitiveMemory(),hcsData={}){
-  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.reasoner=new ReasoningEngine();for(const rule of hcsData.reasoningRules||[])this.reasoner.addRule(rule);this.lastHCS=null;
+  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.reasoner=new ReasoningEngine();for(const rule of hcsData.reasoningRules||[])this.reasoner.addRule(rule);this.lastHCS=null;this.context=new ContextManager(hcsData.conversationContext||{});this.dialogue=new DialogueManager();
   // Small, explicit baseline knowledge; provenance remains visible and distinct from user input.
   if(!this.memory.semantic.some(f=>fold(f.subject)==="trai dat"&&f.source==="builtin-knowledge")){
    this.memory.learn("Trái Đất","là","hành tinh","builtin-knowledge",0.99);
@@ -74,6 +76,17 @@ export class CognitiveCore {
   }
  }
  process(input,representation){
+  const original=String(input??"").trim();
+  const contextBefore=this.context.snapshot();
+  const resolution=this.dialogue.resolve(original,contextBefore);
+  const result=this.processTurn(resolution.text,representation);
+  const contextAfter=this.dialogue.observe(original,resolution.text,result,this.context,this.memory);
+  result.trace.unshift({stage:"dialogue-management",usedContext:resolution.usedContext,topic:resolution.topic,reason:resolution.reason,interpretedInput:resolution.text});
+  result.trace.push({stage:"context-management",currentTopic:contextAfter.currentTopic,pendingQuestion:Boolean(contextAfter.pendingQuestion),turnCount:contextAfter.turnCount});
+  result.conversationContext=contextAfter;
+  return result;
+ }
+ processTurn(input,representation){
   const raw=String(input??"").trim();this.cycle++;this.state.update(raw,representation);
   const trace=[{stage:"perception",result:"input represented",format:representation?.format||"plain-text"}];
   this.lastHCS=this.hcs.process(raw);
