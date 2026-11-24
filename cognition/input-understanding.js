@@ -64,7 +64,7 @@ export function understandInput(raw,representation=null){
  // Collapse exaggerated consecutive-letter typing (e.g. "xuynnn" -> "xuyn")
  // only for matching a known conversational phrase. Keep the user's raw text intact.
  const tokens=folded.split(/\s+/);
- const matchingTokens=tokens.map(token=>token.replace(/(.)\1{2,}/g,"$1$1"));
+ const matchingTokens=tokens.map(token=>token.replace(/(.)\1{2,}/g,"$1"));
  const candidates=PHRASES.map(phrase=>({phrase,result:matchPhrase(matchingTokens,phrase)})).filter(item=>item.result);
  if(candidates.length!==1)return {...base,status:candidates.length>1?"ambiguous":"unchanged",reason:candidates.length>1?"More than one interpretation is plausible.":"No high-confidence conversational correction was found."};
  const {phrase,result}=candidates[0];
