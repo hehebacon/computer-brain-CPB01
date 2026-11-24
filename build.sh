@@ -20,7 +20,7 @@ build() {
  fi
  rm -rf -- "${DIST_DIR}"
  mkdir -p -- "${DIST_DIR}/learning" "${DIST_DIR}/cognition"
- for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js personalization.js search-client.js answer-synthesizer.js reasoning-engine.js code-workbench.js direct-search.js self-improvement-governance.js learning/learning-engine.js learning/association-engine.js learning/source-verifier.js learning/research-agent.js learning/self-improvement-runner.js learning/update-audit-log.js cognition/input-understanding.js cognition/answer-planner.js; do
+ for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js personalization.js search-client.js answer-synthesizer.js reasoning-engine.js code-workbench.js direct-search.js self-improvement-governance.js learning/learning-engine.js learning/association-engine.js learning/source-verifier.js learning/research-agent.js learning/self-improvement-runner.js learning/update-audit-log.js cognition/input-understanding.js cognition/answer-planner.js cognition/context-manager.js cognition/dialogue-manager.js; do
   cp -- "${ROOT_DIR}/${file}" "${DIST_DIR}/${file}"
  done
  if [[ -f "${ROOT_DIR}/README.md" ]]; then cp -- "${ROOT_DIR}/README.md" "${DIST_DIR}/README.md"; fi
