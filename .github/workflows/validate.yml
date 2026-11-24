@@ -16,6 +16,7 @@ jobs:
         run: |
           node --check brain.js
           node --check cognition/input-understanding.js
+          node --check cognition/response-evaluator.js
           node --check cognitive-core.js
           node --check reasoning-engine.js
           node --check code-workbench.js
@@ -61,6 +62,7 @@ jobs:
           test -f dist/index.html
           test -f dist/brain.js
           test -f dist/cognition/input-understanding.js
+          test -f dist/cognition/response-evaluator.js
           test -f dist/cognitive-core.js
           test -f dist/human-cognitive-systems.js
           test -f dist/personalization.js
