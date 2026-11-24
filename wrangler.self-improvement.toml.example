@@ -1,0 +1,20 @@
+# Template only. bootstrap-self-improvement.sh generates the real local config.
+# Never put API keys or tokens in this file.
+name = "cpb01-self-improvement"
+main = "worker/self-improvement-worker.js"
+compatibility_date = "2026-11-23"
+
+[vars]
+GITHUB_REPOSITORY = "hehebacon/computer-brain-CPB01"
+
+# The bootstrap script fills in database_id after creating/finding the D1 database.
+[[d1_databases]]
+binding = "DB"
+database_name = "cpb01-learning"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[triggers]
+crons = ["0 */6 * * *"]
+
+# The recovery R2 bucket is intentionally NOT bound to this proposal broker.
+# Bind it only to a separately trusted recovery/release worker.
