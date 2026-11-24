@@ -4,6 +4,26 @@ export function createD1Store(db) {
  return Object.freeze({
   async saveSource(s){await db.prepare("INSERT INTO knowledge_sources(id,url,title,publisher,authority,family,retrieved_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,publisher=excluded.publisher,authority=excluded.authority,family=excluded.family,retrieved_at=excluded.retrieved_at").bind(s.id,s.url,s.title,s.publisher,s.authority,s.family,s.retrievedAt).run();},
   async saveItem(item){await db.prepare("INSERT INTO knowledge_items(id,claim,kind,confidence,evidence_state,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET claim=excluded.claim,kind=excluded.kind,confidence=excluded.confidence,evidence_state=excluded.evidence_state,updated_at=excluded.updated_at").bind(item.id,item.claim,item.kind,item.confidence,item.state,item.createdAt,item.updatedAt).run();for(const evidence of item.evidence||[])await db.prepare("INSERT OR IGNORE INTO knowledge_evidence(item_id,source_id,independent_group) VALUES(?,?,?)").bind(item.id,evidence.sourceId,evidence.independentGroup||evidence.family).run();},
-  async saveAudit(record){await db.prepare("INSERT INTO update_events(run_id,event,event_at,payload_json,previous_hash,event_hash) VALUES(?,?,?,?,?,?)").bind(record.runId,record.event,record.at,JSON.stringify(record.data),record.previousHash,record.hash).run();}
+  async saveAudit(record){await db.prepare("INSERT INTO update_events(run_id,event,event_at,payload_json,previous_hash,event_hash) VALUES(?,?,?,?,?,?)").bind(record.runId,record.event,record.at,JSON.stringify(record.data),record.previousHash,record.hash).run();},
+  async appendAudit({runId,event,data={}}){
+   const previous=await db.prepare("SELECT sequence,event_hash FROM update_events ORDER BY sequence DESC LIMIT 1").first();
+   const body={sequence:(previous?.sequence||0)+1,runId:String(runId),event:String(event),at:new Date().toISOString(),data,previousHash:previous?.event_hash||"0".repeat(64)};
+   const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(body)));
+   const hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
+   await db.prepare("INSERT INTO update_events(run_id,event,event_at,payload_json,previous_hash,event_hash) VALUES(?,?,?,?,?,?)").bind(body.runId,body.event,body.at,JSON.stringify(body.data),body.previousHash,hash).run();
+   return Object.freeze({...body,hash});
+  },
+  async verifyAudit(){
+   const rows=await db.prepare("SELECT sequence,run_id,event,event_at,payload_json,previous_hash,event_hash FROM update_events ORDER BY sequence").all();
+   let previous="0".repeat(64);
+   for(const row of rows.results||[]){
+    const body={sequence:row.sequence,runId:row.run_id,event:row.event,at:row.event_at,data:JSON.parse(row.payload_json),previousHash:row.previous_hash};
+    const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(body)));
+    const hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,"0")).join("");
+    if(body.previousHash!==previous||hash!==row.event_hash)return {valid:false,sequence:row.sequence};
+    previous=row.event_hash;
+   }
+   return {valid:true,count:(rows.results||[]).length,tail:previous};
+  }
  });
 }
