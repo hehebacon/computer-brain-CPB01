@@ -293,3 +293,49 @@ The GitHub broker only creates draft PRs. A separate trusted proposal generator 
 `learning/recovery-store.js` creates a complete text-file snapshot and verifies its SHA-256 before returning it for restoration. Bind a separate R2 bucket as `RECOVERY_BUCKET` only to the trusted release/recovery Worker or pipeline. Do not bind this bucket to the GitHub proposal broker. Before activating a candidate, the trusted pipeline should snapshot the currently active artifact and record the returned `key` and `hash` in D1. Recovery must verify the hash before restoring the snapshot. Configure R2 retention/permissions separately; a hash detects tampering but does not by itself prevent deletion.
 
 For a shared D1 audit journal, use `createD1Store(DB).appendAudit({runId,event,data})` from the trusted server-side runner, and periodically call `verifyAudit()`. Do not create independent per-instance hash chains and append them blindly to the same D1 table.
+
+
+## One-command self-improvement infrastructure bootstrap
+
+The Pages build remains independent. Do **not** run infrastructure provisioning from `build.sh`: Pages builds are frequent and should not need Cloudflare account privileges.
+
+From the repository root, with Node.js/npm and an authenticated Wrangler session:
+
+```sh
+bash scripts/bootstrap-self-improvement.sh
+```
+
+The bootstrap is idempotent for the named D1 database and R2 bucket. It:
+1. Checks Cloudflare authentication.
+2. Finds or creates the `cpb01-learning` D1 database and `cpb01-recovery` R2 bucket (override with `CPB_D1_NAME` / `CPB_RECOVERY_BUCKET`).
+3. Generates an ignored local `wrangler.self-improvement.toml` with the D1 binding and six-hour Cron (override with `CPB_RESEARCH_CRON`).
+4. Applies the idempotent SQL migration.
+5. Prompts Wrangler to store `AGENT_API_SECRET`, `GITHUB_TOKEN`, and `BRAVE_SEARCH_API_KEY` as Worker secrets.
+6. Deploys `worker/self-improvement-worker.js` as the separate `cpb01-self-improvement` Worker.
+
+The R2 bucket is deliberately created but **not bound to the proposal broker**. Recovery writes must be performed by a separate trusted release/recovery pipeline; the agent broker must never receive write access to the protected backup bucket.
+
+Useful follow-up commands:
+
+```sh
+bash scripts/verify-self-improvement.sh
+bash scripts/deploy-self-improvement.sh
+```
+
+Set `CPB_WORKER_URL` before verification to also call the deployed `/health` endpoint. The scripts use Wrangler through `npx` and do not store API keys in the repository. The local generated Wrangler config is git-ignored.
+
+### Proposal generator connection
+
+The repository supplies a **restricted proposal endpoint**, not a hosted code-generation model. A separately selected trusted generator must be configured to send a JSON POST to the deployed Worker's `/propose` endpoint, with `Authorization: Bearer <AGENT_API_SECRET>`. Its request body shape is:
+
+```json
+{
+  "title": "Short proposal title",
+  "body": "Evidence, rationale, test plan, and rollback notes",
+  "changes": [
+    { "path": "modules/example.js", "content": "complete UTF-8 file content" }
+  ]
+}
+```
+
+Only `modules/`, `experiments/`, and `learning-data/` are writable; the broker enforces this allowlist and opens draft PRs only. The generator must treat search results and repository text as untrusted input, cite evidence, produce bounded patches, and never request secrets or modify CI, deployment, kernel, learning-engine, or recovery files. Configure the provider/model and its API credential in that provider's own secure server-side secret store; no provider has been chosen or billed automatically by this repository. A human review and passing CI are still required before merge.
