@@ -30,15 +30,21 @@ export class SelfImprovementRunner {
       const evaluation=evaluateUpdate(report,baseline);
       await log("EVALUATION_COMPLETED",{evaluation,report});
       if(!evaluation.accepted)throw new Error("Candidate rejected: "+evaluation.failedChecks.join(", "));
+      await log("ACTIVATION_APPROVED",{commit:applied?.commit});
       await this.activate({candidate:applied,runId,signal});
-      activated=true;
       await log("ACTIVATED",{commit:applied?.commit});
+      activated=true;
       return {runId,status:"ACTIVATED",evaluation,commit:applied?.commit};
     } catch(error) {
-      await log("FAILED",{message:String(error?.message||error),commit:applied?.commit});
+      try { await log("FAILED",{message:String(error?.message||error),commit:applied?.commit}); } catch {}
       if(applied&&!activated) {
-        try {const recovery=await this.rollback({candidate:applied,runId});await log("RECOVERY_COMPLETED",{recovery});}
-        catch(recoveryError){await log("RECOVERY_FAILED",{message:String(recoveryError?.message||recoveryError)});throw new AggregateError([error,recoveryError],"Update and recovery both failed");}
+        try {
+          const recovery=await this.rollback({candidate:applied,runId});
+          try { await log("RECOVERY_COMPLETED",{recovery}); } catch {}
+        } catch(recoveryError) {
+          try { await log("RECOVERY_FAILED",{message:String(recoveryError?.message||recoveryError)}); } catch {}
+          throw new AggregateError([error,recoveryError],"Update and recovery both failed");
+        }
       }
       throw error;
     } finally {this.running=false;}
