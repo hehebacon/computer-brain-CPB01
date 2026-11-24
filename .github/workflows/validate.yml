@@ -23,6 +23,7 @@ jobs:
           node --check personalization.js
           node --check search-client.js
           node --check answer-synthesizer.js
+          node --check self-improvement-governance.js
           node --check worker/search-worker.js
           node --check input-engine.js
           node --check universal-representation.js
@@ -55,3 +56,4 @@ jobs:
           test -f dist/reasoning-engine.js
           test -f dist/code-workbench.js
           test -f dist/direct-search.js
+          test -f dist/self-improvement-governance.js
