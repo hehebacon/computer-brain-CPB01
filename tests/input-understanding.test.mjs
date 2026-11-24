@@ -23,7 +23,7 @@ test("preserves code-like and structured input verbatim",()=>{
   const result=understandInput(value);
   assert.equal(result.status,"preserved");
   assert.equal(result.correctedText,value);
- });
+ }
 });
 
 test("does not guess when a typo has no supported phrase interpretation",()=>{
