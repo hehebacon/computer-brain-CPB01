@@ -5,3 +5,4 @@ dist/
 .env.*
 !.env.example
 .wrangler/
+wrangler.self-improvement.toml
