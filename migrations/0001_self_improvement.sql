@@ -43,3 +43,11 @@ CREATE TABLE IF NOT EXISTS update_events (
 );
 CREATE INDEX IF NOT EXISTS idx_knowledge_state ON knowledge_items(evidence_state);
 CREATE INDEX IF NOT EXISTS idx_update_events_run ON update_events(run_id, sequence);
+
+CREATE TABLE IF NOT EXISTS research_topics (
+  id TEXT PRIMARY KEY,
+  topic TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_run_at TEXT,
+  last_status TEXT
+);
