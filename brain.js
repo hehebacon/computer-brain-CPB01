@@ -30,13 +30,13 @@ import { understandInput } from "./cognition/input-understanding.js";
   const learningData=JSON.parse(localStorage.getItem(LEARNING_KEY)||"null");
   if(learningData)learning.import(learningData);
  }catch{}
- const core=new CognitiveCore(memory,{...(saved?.hcs||{}),reasoningRules:saved?.reasoningRules||[]});
+ const core=new CognitiveCore(memory,{...(saved?.hcs||{}),reasoningRules:saved?.reasoningRules||[],conversationContext:saved?.conversationContext||{}});
  const personalization=new PersonalizationModel(saved?.personalization||{});
  const searchClient=new SearchClient(saved?.search?.endpoint||"");
  const researchAgent=new ResearchAgent({search:(query,options)=>searchClient.search(query,options),learning});
  const directSearch=new DirectSearchAdapter();
  const codeWorkbench=new CodeWorkbench();
- function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({memory:memory.export(),turns:state.turns,hcs:core.hcs.export(),reasoningRules:core.reasoner.export(),personalization:personalization.export(),search:{endpoint:searchClient.endpoint}}));localStorage.setItem(LEARNING_KEY,JSON.stringify(learning.export()));}catch{}}
+ function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({memory:memory.export(),turns:state.turns,hcs:core.hcs.export(),reasoningRules:core.reasoner.export(),conversationContext:core.context.export(),personalization:personalization.export(),search:{endpoint:searchClient.endpoint}}));localStorage.setItem(LEARNING_KEY,JSON.stringify(learning.export()));}catch{}}
  function respond(text){
   const original=String(text??"");
   const representation=analyzeText(original);
@@ -50,7 +50,7 @@ import { understandInput } from "./cognition/input-understanding.js";
   result.trace.push({stage:"personalization-observation",changed:preferenceUpdate.changed,changes:preferenceUpdate.changes||{}});
   result.trace.push({stage:"agent-affect-adaptation",mode:adaptation.adaptation,agentState:adaptation.agentAffect.label,agentScore:adaptation.agentAffect.score});
   save();
-  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,needsExternalEvidence:!!result.needsExternalEvidence,searchQuery:result.searchQuery||null,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
+  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,needsExternalEvidence:!!result.needsExternalEvidence,searchQuery:result.searchQuery||null,conversationContext:result.conversationContext,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
  }
  window.CPB01={
   respond,
