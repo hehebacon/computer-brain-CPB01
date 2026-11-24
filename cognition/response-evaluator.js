@@ -11,9 +11,7 @@ function candidateScore(candidate){
 }
 
 export function evaluateResponse({input="",understanding={},result={},context={}}={}){
- const original=String(input??"");
  const candidates=[];
- const intent=traceStep(result,"intent-classification")?.intent||"unknown";
  const resultConfidence=clamp(result.confidence);
  const hasEvidence=Boolean(traceStep(result,"memory-retrieval")?.matches||traceStep(result,"answer-planning")?.evidenceCount);
  const contextUsed=Boolean(traceStep(result,"dialogue-management")?.usedContext);
@@ -66,7 +64,8 @@ export function evaluateResponse({input="",understanding={},result={},context={}
  const finalCandidate=accepted?selected:(fallback||selected);
  return {
   text:finalCandidate.text,
-  confidence:accepted?clamp(finalCandidate.score):Math.min(0.3,clamp(finalCandidate.score)),
+  confidence:finalCandidate.id==="recognized-greeting"?clamp(understanding.confidence):finalCandidate.id==="clarification"?Math.min(0.2,resultConfidence):accepted?resultConfidence:Math.min(0.3,resultConfidence),
+  rankingScore:finalCandidate.score,
   selectedId:finalCandidate.id,
   accepted,
   threshold,
