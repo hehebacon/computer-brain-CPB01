@@ -12,6 +12,7 @@ import { AssociationEngine } from "./learning/association-engine.js";
 import { ResearchAgent } from "./learning/research-agent.js";
 import { UpdateAuditLog } from "./learning/update-audit-log.js";
 import { understandInput } from "./cognition/input-understanding.js";
+import { evaluateResponse } from "./cognition/response-evaluator.js";
 (() => {
  const STORAGE_KEY="cpb01-cognitive-memory-v3";
  const LEARNING_KEY="cpb01-learning-v1";
@@ -45,12 +46,16 @@ import { understandInput } from "./cognition/input-understanding.js";
   const preferenceUpdate=personalization.observe(original);
   const result=core.process(understanding.correctedText,representation);
   result.trace.unshift({stage:"input-understanding",status:understanding.status,confidence:understanding.confidence,corrections:understanding.corrections,originalPreserved:true,reason:understanding.reason});
+  const responseEvaluation=evaluateResponse({input:original,understanding,result,context:result.conversationContext});
+  result.text=responseEvaluation.text;
+  result.confidence=responseEvaluation.confidence;
+  result.trace.push({stage:"response-evaluation",selectedId:responseEvaluation.selectedId,accepted:responseEvaluation.accepted,threshold:responseEvaluation.threshold,candidates:responseEvaluation.candidates,reason:responseEvaluation.reason});
   const adaptation=core.hcs.recordOutcome({confidence:result.confidence,question:core.lastHCS?.question});
   result.text=personalization.adaptText(result.text,{mode:adaptation.adaptation,confidence:result.confidence});
   result.trace.push({stage:"personalization-observation",changed:preferenceUpdate.changed,changes:preferenceUpdate.changes||{}});
   result.trace.push({stage:"agent-affect-adaptation",mode:adaptation.adaptation,agentState:adaptation.agentAffect.label,agentScore:adaptation.agentAffect.score});
   save();
-  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,needsExternalEvidence:!!result.needsExternalEvidence,searchQuery:result.searchQuery||null,conversationContext:result.conversationContext,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
+  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,needsExternalEvidence:!!result.needsExternalEvidence,searchQuery:result.searchQuery||null,conversationContext:result.conversationContext,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},responseEvaluation,cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
  }
  window.CPB01={
   respond,
