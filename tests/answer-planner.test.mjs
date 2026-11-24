@@ -31,7 +31,7 @@ test("cognitive core exposes a search plan when local evidence is missing",()=>{
 test("cognitive core answers non-definition questions from matching memory",()=>{
  const memory=new CognitiveMemory();
  memory.learn("Bầu trời","có màu","xanh do tán xạ ánh sáng","test",0.8);
- const result=new CognitiveCore(memory).process("Why is the sky blue?",null);
+ const result=new CognitiveCore(memory).process("Vì sao bầu trời có màu xanh?",null);
  assert.equal(result.needsExternalEvidence,undefined);
  assert.match(result.text,/Bầu trời có màu/);
  assert.ok(result.trace.some(step=>step.stage==="answer-planning"&&step.goal==="answer-from-local-evidence"));
