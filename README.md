@@ -286,3 +286,10 @@ The same dedicated Worker supports a bounded `scheduled()` handler. In Cloudflar
 Each scheduled run handles at most three enabled topics and up to five results per topic. It stores search snippets as `UNVERIFIED` candidate claims with their source URL; it does not treat snippets as facts and does not crawl arbitrary links. Research activity is recorded in the D1 hash-chain journal.
 
 The GitHub broker only creates draft PRs. A separate trusted proposal generator must submit reviewed text patches to `POST /propose` using the agent secret. Do not place that secret or GitHub token in the Pages frontend. The repository currently has no built-in general-purpose code-generation model, so automatic discovery and proposal execution require a separately configured, trusted generator. The CI gate and human-reviewed merge remain the activation boundary.
+
+
+### Protected R2 recovery snapshots
+
+`learning/recovery-store.js` creates a complete text-file snapshot and verifies its SHA-256 before returning it for restoration. Bind a separate R2 bucket as `RECOVERY_BUCKET` only to the trusted release/recovery Worker or pipeline. Do not bind this bucket to the GitHub proposal broker. Before activating a candidate, the trusted pipeline should snapshot the currently active artifact and record the returned `key` and `hash` in D1. Recovery must verify the hash before restoring the snapshot. Configure R2 retention/permissions separately; a hash detects tampering but does not by itself prevent deletion.
+
+For a shared D1 audit journal, use `createD1Store(DB).appendAudit({runId,event,data})` from the trusted server-side runner, and periodically call `verifyAudit()`. Do not create independent per-instance hash chains and append them blindly to the same D1 table.
