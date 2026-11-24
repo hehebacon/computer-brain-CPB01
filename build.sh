@@ -23,7 +23,6 @@ build() {
  for file in index.html brain.js input-engine.js universal-representation.js cognitive-core.js human-cognitive-systems.js personalization.js search-client.js answer-synthesizer.js reasoning-engine.js code-workbench.js direct-search.js self-improvement-governance.js learning/learning-engine.js learning/association-engine.js learning/source-verifier.js learning/research-agent.js learning/self-improvement-runner.js learning/update-audit-log.js; do
   cp -- "${ROOT_DIR}/${file}" "${DIST_DIR}/${file}"
  done
- for file in learning/learning-engine.js learning/association-engine.js learning/source-verifier.js learning/research-agent.js learning/self-improvement-runner.js learning/update-audit-log.js; do cp -- "${ROOT_DIR}/${file}" "${DIST_DIR}/${file}"; done
  if [[ -f "${ROOT_DIR}/README.md" ]]; then cp -- "${ROOT_DIR}/README.md" "${DIST_DIR}/README.md"; fi
  echo "[CPB-01] Build complete. Output: ${DIST_DIR}"
 }
