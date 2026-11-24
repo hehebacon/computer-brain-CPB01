@@ -7,7 +7,7 @@ export class DialogueManager{
   const original=String(input??"").trim(),topic=context?.currentTopic;
   if(!topic||!original)return {text:original,usedContext:false,topic:null,reason:"no-context"};
   const normalized=fold(original);
-  const isFollowup=FOLLOWUP.test(normalized)||PRONOUNS.test(normalized)||/\b(con|vay)\s+(sao|thi|the nao)\b/i.test(normalized);
+  const isFollowup=FOLLOWUP.test(normalized)||HAS_PRONOUN.test(normalized)||/\b(con|vay)\s+(sao|thi|the nao)\b/i.test(normalized);
   if(!isFollowup)return {text:original,usedContext:false,topic:null,reason:"standalone-turn"};
   let text=original.replace(PRONOUNS,topic);
   if(/^(con|the con|vay con)\b/i.test(normalized)&&!fold(text).includes(fold(topic)))text=topic+" "+text;
