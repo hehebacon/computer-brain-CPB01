@@ -32,7 +32,6 @@ async function github(env,path,options={}) {
  if(!response.ok)throw new Error("GitHub API "+response.status+": "+String(body.message||"request failed").slice(0,180));
  return body;
 }
-export default {
 async function writeAudit(db,event,data) {
  const previous=await db.prepare("SELECT event_hash,sequence FROM update_events ORDER BY sequence DESC LIMIT 1").first();
  const body={sequence:(previous?.sequence||0)+1,event,at:new Date().toISOString(),data,previousHash:previous?.event_hash||"0".repeat(64)};
@@ -42,6 +41,7 @@ async function writeAudit(db,event,data) {
  await db.prepare("INSERT INTO update_events(run_id,event,event_at,payload_json,previous_hash,event_hash) VALUES(?,?,?,?,?,?)")
   .bind("scheduled-learning",event,body.at,JSON.stringify(data),body.previousHash,hash).run();
 }
+export default {
  async scheduled(controller,env,ctx) {
   ctx.waitUntil((async()=>{
    if(!env.DB||!env.BRAVE_SEARCH_API_KEY)throw new Error("D1 and BRAVE_SEARCH_API_KEY are required for scheduled research");
@@ -77,7 +77,8 @@ async function writeAudit(db,event,data) {
     }
    }
   })());
- }
+ },
+
 
  async fetch(request,env) {
   const url=new URL(request.url);
