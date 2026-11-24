@@ -50,8 +50,7 @@ else
 fi
 
 info "Finding or creating protected R2 bucket: $R2_BUCKET"
-R2_LIST="$(wrangler r2 bucket list --json)"
-if printf '%s' "$R2_LIST" | json_value "$R2_BUCKET" >/dev/null 2>&1; then
+if wrangler r2 bucket info "$R2_BUCKET" --json >/dev/null 2>&1; then
   info "R2 bucket already exists."
 else
   wrangler r2 bucket create "$R2_BUCKET"
