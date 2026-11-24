@@ -1,8 +1,8 @@
 /* CPB-01 Dialogue Manager: resolve short follow-ups against bounded context. */
 const fold=s=>String(s??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLocaleLowerCase("vi").trim();
 const FOLLOWUP=/^(?:(?:the con|con|vay con|vay|the|no|dieu do|cai do|cua no)\b|(?:tai sao|vi sao|why|how|what about|and)\b)/i;
-const HAS_PRONOUN=/\b(nó|điều đó|cái đó|thế đó|no|dieu do|cai do|the do|that|it|they|them|this|those)\b/i;
-const PRONOUNS=/\b(nó|điều đó|cái đó|thế đó|no|dieu do|cai do|the do|that|it|they|them|this|those)\b/gi;
+const HAS_PRONOUN=/(nó|điều đó|cái đó|thế đó|\bno\b|\bdieu do\b|\bcai do\b|\bthe do\b|\bthat\b|\bit\b|\bthey\b|\bthem\b|\bthis\b|\bthose\b)/i;
+const PRONOUNS=/(nó|điều đó|cái đó|thế đó|\bno\b|\bdieu do\b|\bcai do\b|\bthe do\b|\bthat\b|\bit\b|\bthey\b|\bthem\b|\bthis\b|\bthose\b)/gi;
 export class DialogueManager{
  resolve(input,context){
   const original=String(input??"").trim(),topic=context?.currentTopic;
