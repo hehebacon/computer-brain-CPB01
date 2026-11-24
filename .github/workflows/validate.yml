@@ -35,6 +35,7 @@ jobs:
           node --check learning/self-improvement-runner.js
           node --check learning/update-audit-log.js
           node --check learning/d1-store.js
+          node --check learning/recovery-store.js
       - name: Run regression tests
         run: npm test
       - name: Check inline browser module syntax
