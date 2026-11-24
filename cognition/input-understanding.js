@@ -61,10 +61,14 @@ export function understandInput(raw,representation=null){
   const phrase=PHRASES.find(item=>item.tokens.join(" ")===alias||item.tokens.join("")===alias);
   return {...base,correctedText:alias,corrections:[{from:folded,to:alias,type:"known-chat-alias"}],confidence:0.94,status:"normalized",reason:"Exact match to a small, explicit chat-spelling dictionary.",...(phrase?{intentHint:phrase.intent}:{})};
  }
+ // Collapse exaggerated consecutive-letter typing (e.g. "xuynnn" -> "xuyn")
+ // only for matching a known conversational phrase. Keep the user's raw text intact.
  const tokens=folded.split(/\s+/);
- const candidates=PHRASES.map(phrase=>({phrase,result:matchPhrase(tokens,phrase)})).filter(item=>item.result);
+ const matchingTokens=tokens.map(token=>token.replace(/(.)\\1{2,}/g,"$1$1"));
+ const candidates=PHRASES.map(phrase=>({phrase,result:matchPhrase(matchingTokens,phrase)})).filter(item=>item.result);
  if(candidates.length!==1)return {...base,status:candidates.length>1?"ambiguous":"unchanged",reason:candidates.length>1?"More than one interpretation is plausible.":"No high-confidence conversational correction was found."};
  const {phrase,result}=candidates[0];
- return {...base,correctedText:phrase.tokens.join(" "),corrections:result.corrections,confidence:result.confidence,status:"corrected",reason:"Unique match to a supported conversational phrase.",intentHint:phrase.intent};
+ const repetitionCorrections=tokens.flatMap((token,index)=>token!==matchingTokens[index]?[{from:token,to:matchingTokens[index],type:"repeated-letter-normalization"}]:[]);
+ return {...base,correctedText:phrase.tokens.join(" "),corrections:[...repetitionCorrections,...result.corrections],confidence:Math.min(result.confidence,repetitionCorrections.length?0.88:result.confidence),status:"corrected",reason:"Unique match to a supported conversational phrase after conservative typo normalization.",intentHint:phrase.intent};
 }
 export {editDistance as inputEditDistance};
