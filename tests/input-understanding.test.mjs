@@ -13,6 +13,15 @@ test("recovers the demonstrated Vietnamese greeting typo without losing original
  assert.equal(classifyUtterance(result.correctedText).intent,"greeting");
 });
 
+test("recovers exaggerated repeated-letter greeting typo xuynnn chao",()=>{
+ const result=understandInput("xuynnn chao");
+ assert.equal(result.status,"corrected");
+ assert.equal(result.correctedText,"xin chao");
+ assert.equal(result.intentHint,"greeting");
+ assert.equal(result.original,"xuynnn chao");
+ assert.ok(result.corrections.some(item=>item.type==="repeated-letter-normalization"));
+});
+
 test("normalizes a small set of exact chat spellings",()=>{
  for(const [input,expected] of [["helo","hello"],["hii","hi"],["chaoo","chao"],["xinchao","xin chao"]]){
   const result=understandInput(input);
