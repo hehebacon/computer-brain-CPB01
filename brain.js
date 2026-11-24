@@ -11,6 +11,7 @@ import { LearningEngine } from "./learning/learning-engine.js";
 import { AssociationEngine } from "./learning/association-engine.js";
 import { ResearchAgent } from "./learning/research-agent.js";
 import { UpdateAuditLog } from "./learning/update-audit-log.js";
+import { understandInput } from "./cognition/input-understanding.js";
 (() => {
  const STORAGE_KEY="cpb01-cognitive-memory-v3";
  const LEARNING_KEY="cpb01-learning-v1";
@@ -37,16 +38,19 @@ import { UpdateAuditLog } from "./learning/update-audit-log.js";
  const codeWorkbench=new CodeWorkbench();
  function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({memory:memory.export(),turns:state.turns,hcs:core.hcs.export(),reasoningRules:core.reasoner.export(),personalization:personalization.export(),search:{endpoint:searchClient.endpoint}}));localStorage.setItem(LEARNING_KEY,JSON.stringify(learning.export()));}catch{}}
  function respond(text){
-  const representation=analyzeText(String(text??""));
-  state.lastRepresentation=representation;state.turns++;
-  const preferenceUpdate=personalization.observe(String(text??""));
-  const result=core.process(text,representation);
+  const original=String(text??"");
+  const representation=analyzeText(original);
+  const understanding=understandInput(original,representation);
+  state.lastRepresentation={...representation,inputUnderstanding:understanding};state.turns++;
+  const preferenceUpdate=personalization.observe(original);
+  const result=core.process(understanding.correctedText,representation);
+  result.trace.unshift({stage:"input-understanding",status:understanding.status,confidence:understanding.confidence,corrections:understanding.corrections,originalPreserved:true,reason:understanding.reason});
   const adaptation=core.hcs.recordOutcome({confidence:result.confidence,question:core.lastHCS?.question});
-  if(preferenceUpdate.changed)result.text="Đã cập nhật cách trả lời: "+Object.entries(preferenceUpdate.changes).map(([k,v])=>k+" = "+v).join(", ")+".";
   result.text=personalization.adaptText(result.text,{mode:adaptation.adaptation,confidence:result.confidence});
+  result.trace.push({stage:"personalization-observation",changed:preferenceUpdate.changed,changes:preferenceUpdate.changes||{}});
   result.trace.push({stage:"agent-affect-adaptation",mode:adaptation.adaptation,agentState:adaptation.agentAffect.label,agentScore:adaptation.agentAffect.score});
   save();
-  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
+  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
  }
  window.CPB01={
   respond,
