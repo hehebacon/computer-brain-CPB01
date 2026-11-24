@@ -68,7 +68,7 @@ main{flex:1;display:flex;flex-direction:column;gap:16px;padding:22px 0}.intro,.c
  <button class="secondary" id="save-search-endpoint" type="button">Lưu địa chỉ Worker</button>
  <label for="search-mode">Phạm vi tìm kiếm</label>
  <select class="panel-input" id="search-mode"><option value="web">Toàn web</option><option value="social">Bài đăng công khai trên mạng xã hội</option></select>
- <label class="inline-option"><input id="auto-search" type="checkbox"> Tự tìm khi câu hỏi thiếu dữ kiện trong bộ nhớ</label>
+ <label class="inline-option"><input id="auto-search" type="checkbox" checked> Tự tìm khi câu hỏi thiếu dữ kiện trong bộ nhớ</label>
  <button class="secondary" id="search-now" type="button">⌕ Tìm nguồn cho câu gần nhất</button>
  <p id="search-state">Chỉ tìm nội dung công khai đã được lập chỉ mục. Không truy cập tài khoản riêng tư hoặc tin nhắn.</p>
 </section>
@@ -242,7 +242,7 @@ document.getElementById("form").addEventListener("submit",async e=>{
  const text=input.value.trim();if(!text)return;
  lastQuery=text;add(text,"user");input.value="";
  const result=window.CPB01.respond(text);add(result.text,"bot");stats();input.focus();
- if(document.getElementById("auto-search").checked&&result.reasoning.confidence<0.35&&result.cognitiveProfile?.question?.isQuestion&&window.CPB01.stats().searchConfigured)await searchAndAnswer(text);
+ if(document.getElementById("auto-search").checked&&result.reasoning.confidence<0.35&&result.cognitiveProfile?.question?.isQuestion&&window.CPB01.stats().searchConfigured)await searchAndAnswer(result.searchQuery||text);
 });
 document.querySelectorAll("[data-msg]").forEach(b=>b.addEventListener("click",()=>{input.value=b.dataset.msg;input.focus();}));
 async function handleFiles(list){for(const file of Array.from(list||[])){add("Tệp: "+file.name+" ("+file.size+" bytes)","user");try{const result=await window.CPB01.processFile(file);add(summarize(result),"bot");}catch(err){add("Không thể phân tích tệp: "+(err&&err.message||"lỗi không xác định"),"bot");}stats();}}

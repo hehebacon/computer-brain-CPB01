@@ -240,3 +240,102 @@ Public social-search links for Reddit, YouTube, X, Threads, and TikTok are const
 ## End-to-end validation
 
 Run `npm test` and `bash build.sh`. The added `tests/end-to-end.test.mjs` covers elapsed-time recovery, separate Mood and Bond state, explicit corrections, task outcomes, IF/ELSE and multi-step forward chaining, Markdown rendering, sandbox policy/size limits, Worker timeout termination, direct public search, and social search-link generation.
+
+
+## Evidence learning and bounded self-improvement
+
+The learning layer is intentionally evidence-first:
+- `learning/learning-engine.js` stores claims with provenance and states (`UNVERIFIED`, `SUPPORTED`, `CORROBORATED`, `CONFLICTED`, `REJECTED`).
+- `learning/source-verifier.js` assigns cautious source-quality hints. Institutional domains are not treated as proof.
+- `learning/research-agent.js` turns public search snippets into attributed candidate knowledge; snippets remain candidates, not verified facts.
+- `learning/association-engine.js` proposes lexical associations and explicitly labels them as candidates rather than causal facts.
+- `learning/d1-store.js` persists sources, claims, evidence and audit events to a Cloudflare D1 binding. Apply `migrations/0001_self_improvement.sql` before connecting it.
+
+The update lifecycle in `learning/self-improvement-runner.js` is adapter-driven: research, propose, assess paths, create a candidate, validate, write audit events, activate, or roll back. It requires an isolated validator and a durable audit sink supplied by the deployment. The browser does not receive GitHub credentials.
+
+### GitHub proposal broker
+
+`worker/self-improvement-worker.js` is a separate Cloudflare Worker entry point. It accepts authenticated text-only proposals, checks every path against a strict allowlist, creates a unique branch and opens a **draft pull request only**. It never merges or deploys.
+
+Configure these Worker secrets/variables:
+- `AGENT_API_SECRET`: a separate random API secret for the agent caller.
+- `GITHUB_TOKEN`: preferably a short-lived GitHub App installation token scoped to this repository, with Contents read/write, Pull requests read/write, Metadata read. Do not grant Actions, Administration, Secrets, or workflow permissions.
+- `GITHUB_REPOSITORY`: `owner/name`.
+
+The broker intentionally blocks `kernel/`, `recovery/`, `worker/`, `learning/`, `.github/`, build configuration, and root application entry points. Only `modules/`, `experiments/`, and `learning-data/` are writable. It creates draft PRs against `main`; CI and human review remain required before merging. Protect `main` and require CI checks in GitHub branch protection settings.
+
+### Recovery and audit
+
+`learning/update-audit-log.js` creates a SHA-256 hash chain. Store its records in D1 using `createD1Store(db).saveAudit(record)`; local browser storage is only a convenience copy and is not tamper-proof. Keep stable releases as protected Git tags or immutable R2 objects, with write access separate from the agent. A hash record verifies artifact identity but is not itself a backup.
+
+### Deployment boundary
+
+Pages serves the browser application. Deploy `worker/self-improvement-worker.js` as a separate Worker with its own secrets and D1 binding; do not put secrets in Pages variables exposed to browser JavaScript. The autonomous pipeline is not active merely by deploying the UI: a trusted server-side scheduler/agent must call the research and proposal stages, persist the audit chain, run isolated CI, and activate only after policy gates pass. The included runner is the lifecycle controller, not an autonomous model or an unlimited web crawler.
+
+
+### Scheduled public research setup
+
+The same dedicated Worker supports a bounded `scheduled()` handler. In Cloudflare:
+1. Create a D1 database and execute `migrations/0001_self_improvement.sql`.
+2. Bind it to this Worker as `DB`.
+3. Add `BRAVE_SEARCH_API_KEY` as a Worker secret.
+4. Add a Cron Trigger such as `0 */6 * * *` (every six hours).
+5. Add topics explicitly in D1, for example:
+   `INSERT INTO research_topics(id,topic,enabled) VALUES('topic-001','official documentation for JavaScript modules',1);`
+
+Each scheduled run handles at most three enabled topics and up to five results per topic. It stores search snippets as `UNVERIFIED` candidate claims with their source URL; it does not treat snippets as facts and does not crawl arbitrary links. Research activity is recorded in the D1 hash-chain journal.
+
+The GitHub broker only creates draft PRs. A separate trusted proposal generator must submit reviewed text patches to `POST /propose` using the agent secret. Do not place that secret or GitHub token in the Pages frontend. The repository currently has no built-in general-purpose code-generation model, so automatic discovery and proposal execution require a separately configured, trusted generator. The CI gate and human-reviewed merge remain the activation boundary.
+
+
+### Protected R2 recovery snapshots
+
+`learning/recovery-store.js` creates a complete text-file snapshot and verifies its SHA-256 before returning it for restoration. Bind a separate R2 bucket as `RECOVERY_BUCKET` only to the trusted release/recovery Worker or pipeline. Do not bind this bucket to the GitHub proposal broker. Before activating a candidate, the trusted pipeline should snapshot the currently active artifact and record the returned `key` and `hash` in D1. Recovery must verify the hash before restoring the snapshot. Configure R2 retention/permissions separately; a hash detects tampering but does not by itself prevent deletion.
+
+For a shared D1 audit journal, use `createD1Store(DB).appendAudit({runId,event,data})` from the trusted server-side runner, and periodically call `verifyAudit()`. Do not create independent per-instance hash chains and append them blindly to the same D1 table.
+
+
+## One-command self-improvement infrastructure bootstrap
+
+The Pages build remains independent. Do **not** run infrastructure provisioning from `build.sh`: Pages builds are frequent and should not need Cloudflare account privileges.
+
+From the repository root, with Node.js/npm and an authenticated Wrangler session:
+
+```sh
+bash scripts/bootstrap-self-improvement.sh
+```
+
+The bootstrap is idempotent for the named D1 database and R2 bucket. It:
+1. Checks Cloudflare authentication.
+2. Finds or creates the `cpb01-learning` D1 database and `cpb01-recovery` R2 bucket (override with `CPB_D1_NAME` / `CPB_RECOVERY_BUCKET`).
+3. Generates an ignored local `wrangler.self-improvement.toml` with the D1 binding and six-hour Cron (override with `CPB_RESEARCH_CRON`).
+4. Applies the idempotent SQL migration.
+5. Prompts Wrangler to store `AGENT_API_SECRET`, `GITHUB_TOKEN`, and `BRAVE_SEARCH_API_KEY` as Worker secrets.
+6. Deploys `worker/self-improvement-worker.js` as the separate `cpb01-self-improvement` Worker.
+
+The R2 bucket is deliberately created but **not bound to the proposal broker**. Recovery writes must be performed by a separate trusted release/recovery pipeline; the agent broker must never receive write access to the protected backup bucket.
+
+Useful follow-up commands:
+
+```sh
+bash scripts/verify-self-improvement.sh
+bash scripts/deploy-self-improvement.sh
+```
+
+Set `CPB_WORKER_URL` before verification to also call the deployed `/health` endpoint. The scripts use Wrangler through `npx` and do not store API keys in the repository. The local generated Wrangler config is git-ignored.
+
+### Proposal generator connection
+
+The repository supplies a **restricted proposal endpoint**, not a hosted code-generation model. A separately selected trusted generator must be configured to send a JSON POST to the deployed Worker's `/propose` endpoint, with `Authorization: Bearer <AGENT_API_SECRET>`. Its request body shape is:
+
+```json
+{
+  "title": "Short proposal title",
+  "body": "Evidence, rationale, test plan, and rollback notes",
+  "changes": [
+    { "path": "modules/example.js", "content": "complete UTF-8 file content" }
+  ]
+}
+```
+
+Only `modules/`, `experiments/`, and `learning-data/` are writable; the broker enforces this allowlist and opens draft PRs only. The generator must treat search results and repository text as untrusted input, cite evidence, produce bounded patches, and never request secrets or modify CI, deployment, kernel, learning-engine, or recovery files. Configure the provider/model and its API credential in that provider's own secure server-side secret store; no provider has been chosen or billed automatically by this repository. A human review and passing CI are still required before merge.

@@ -7,9 +7,20 @@ import { SearchClient } from "./search-client.js";
 import { composeSearchAnswer } from "./answer-synthesizer.js";
 import { CodeWorkbench, createCodeMarkdown, renderMarkdownPreview, mountSandbox } from "./code-workbench.js";
 import { DirectSearchAdapter, buildPublicSearchLinks } from "./direct-search.js";
+import { LearningEngine } from "./learning/learning-engine.js";
+import { AssociationEngine } from "./learning/association-engine.js";
+import { ResearchAgent } from "./learning/research-agent.js";
+import { UpdateAuditLog } from "./learning/update-audit-log.js";
+import { understandInput } from "./cognition/input-understanding.js";
+import { evaluateResponse } from "./cognition/response-evaluator.js";
 (() => {
  const STORAGE_KEY="cpb01-cognitive-memory-v3";
+ const LEARNING_KEY="cpb01-learning-v1";
+ const AUDIT_KEY="cpb01-update-audit-v1";
  const memory=new CognitiveMemory();
+ const learning=new LearningEngine();
+ const associations=new AssociationEngine();
+ const audit=new UpdateAuditLog({sink:async record=>{try{const data=JSON.parse(localStorage.getItem(AUDIT_KEY)||'{"records":[]}');data.records.push(record);data.tail=record.hash;localStorage.setItem(AUDIT_KEY,JSON.stringify(data));}catch{}}});
  const state={turns:0,lastRepresentation:null};
  let saved=null;
  try{
@@ -17,24 +28,34 @@ import { DirectSearchAdapter, buildPublicSearchLinks } from "./direct-search.js"
   if(saved&&saved.memory)memory.import(saved.memory);
   else if(saved&&Array.isArray(saved.facts))for(const f of saved.facts)memory.learn(f.subject,f.relation,f.object,"legacy-memory",0.6);
   if(saved)state.turns=Number(saved.turns)||0;
+  const learningData=JSON.parse(localStorage.getItem(LEARNING_KEY)||"null");
+  if(learningData)learning.import(learningData);
  }catch{}
- const core=new CognitiveCore(memory,{...(saved?.hcs||{}),reasoningRules:saved?.reasoningRules||[]});
+ const core=new CognitiveCore(memory,{...(saved?.hcs||{}),reasoningRules:saved?.reasoningRules||[],conversationContext:saved?.conversationContext||{}});
  const personalization=new PersonalizationModel(saved?.personalization||{});
  const searchClient=new SearchClient(saved?.search?.endpoint||"");
+ const researchAgent=new ResearchAgent({search:(query,options)=>searchClient.search(query,options),learning});
  const directSearch=new DirectSearchAdapter();
  const codeWorkbench=new CodeWorkbench();
- function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({memory:memory.export(),turns:state.turns,hcs:core.hcs.export(),reasoningRules:core.reasoner.export(),personalization:personalization.export(),search:{endpoint:searchClient.endpoint}}));}catch{}}
+ function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({memory:memory.export(),turns:state.turns,hcs:core.hcs.export(),reasoningRules:core.reasoner.export(),conversationContext:core.context.export(),personalization:personalization.export(),search:{endpoint:searchClient.endpoint}}));localStorage.setItem(LEARNING_KEY,JSON.stringify(learning.export()));}catch{}}
  function respond(text){
-  const representation=analyzeText(String(text??""));
-  state.lastRepresentation=representation;state.turns++;
-  const preferenceUpdate=personalization.observe(String(text??""));
-  const result=core.process(text,representation);
+  const original=String(text??"");
+  const representation=analyzeText(original);
+  const understanding=understandInput(original,representation);
+  state.lastRepresentation={...representation,inputUnderstanding:understanding};state.turns++;
+  const preferenceUpdate=personalization.observe(original);
+  const result=core.process(understanding.correctedText,representation);
+  result.trace.unshift({stage:"input-understanding",status:understanding.status,confidence:understanding.confidence,corrections:understanding.corrections,originalPreserved:true,reason:understanding.reason});
+  const responseEvaluation=evaluateResponse({input:original,understanding,result,context:result.conversationContext});
+  result.text=responseEvaluation.text;
+  result.confidence=responseEvaluation.confidence;
+  result.trace.push({stage:"response-evaluation",selectedId:responseEvaluation.selectedId,accepted:responseEvaluation.accepted,threshold:responseEvaluation.threshold,candidates:responseEvaluation.candidates,reason:responseEvaluation.reason});
   const adaptation=core.hcs.recordOutcome({confidence:result.confidence,question:core.lastHCS?.question});
-  if(preferenceUpdate.changed)result.text="Đã cập nhật cách trả lời: "+Object.entries(preferenceUpdate.changes).map(([k,v])=>k+" = "+v).join(", ")+".";
   result.text=personalization.adaptText(result.text,{mode:adaptation.adaptation,confidence:result.confidence});
+  result.trace.push({stage:"personalization-observation",changed:preferenceUpdate.changed,changes:preferenceUpdate.changes||{}});
   result.trace.push({stage:"agent-affect-adaptation",mode:adaptation.adaptation,agentState:adaptation.agentAffect.label,agentScore:adaptation.agentAffect.score});
   save();
-  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
+  return {text:result.text,turns:state.turns,facts:memory.semantic.length,engine:"cpb01-cognitive-core",representation,inputUnderstanding:understanding,needsExternalEvidence:!!result.needsExternalEvidence,searchQuery:result.searchQuery||null,conversationContext:result.conversationContext,reasoning:{cycle:core.cycle,confidence:result.confidence,trace:result.trace},responseEvaluation,cognitiveProfile:core.lastHCS,personalization:personalization.snapshot(),adaptation};
  }
  window.CPB01={
   respond,
@@ -69,6 +90,13 @@ import { DirectSearchAdapter, buildPublicSearchLinks } from "./direct-search.js"
   },
   buildSocialSearchLinks(query){return buildPublicSearchLinks(query);},
   searchLocal(query,limit=8){return memory.recall(query,limit);},
+  learnKnowledge(claim,options={}){const item=learning.learn({claim,kind:options.kind||"claim",confidence:options.confidence??0.25});save();return item;},
+  async researchKnowledge(topic,options={}){const result=await researchAgent.research(topic,options);save();return result;},
+  searchKnowledge(query,limit=10){return learning.search(query,limit);},
+  discoverAssociations(limit=100){return associations.discover(learning.export().items).slice(0,limit);},
+  exportKnowledge(){return learning.export();},
+  async recordUpdateEvent(event,data={}){const record=await audit.append({runId:data.runId||"manual",event,data});return record;},
+  updateAudit(){try{return JSON.parse(localStorage.getItem(AUDIT_KEY)||'{"records":[],"tail":null}');}catch{return {records:[],tail:null};}},
   registerRule(rule){const added=core.registerRule(rule);save();return added;},
   reason(subject){return core.reason(subject);},
   runReasoning(){return core.runReasoning();},

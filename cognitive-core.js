@@ -4,6 +4,9 @@
  */
 import { HumanCognitiveSystems, classifyQuestion } from "./human-cognitive-systems.js";
 import { ReasoningEngine } from "./reasoning-engine.js";
+import { planAnswer } from "./cognition/answer-planner.js";
+import { ContextManager } from "./cognition/context-manager.js";
+import { DialogueManager } from "./cognition/dialogue-manager.js";
 const norm=s=>String(s??"").normalize("NFC").toLocaleLowerCase("vi").trim();
 const fold=s=>norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
 const words=s=>(String(s).match(/[\p{L}\p{M}\p{N}_]+/gu)||[]);
@@ -38,6 +41,8 @@ export function classifyUtterance(input){
  const subject=questionSubject(text);
  if(subject)return {intent:"question-definition",subject,confidence:0.94};
  if(/^(tinh|calculate|what is)\s+/.test(q))return {intent:"calculation",confidence:0.95};
+ // Capability questions are common conversational intents, including unaccented Vietnamese and chat shorthand.
+ if(/^(ban|may|ong)\s+(lam\s+duoc|lam\s+dc|co\s+the\s+lam|giup\s+duoc|giup\s+dc|co\s+the\s+giup)\s+(duoc\s+)?gi\??$/.test(q)||/^(ban|may)\s+giup\s+duoc\s+gi\??$/.test(q))return {intent:"capabilities-question",confidence:0.98};
  const multilingualQuestion=classifyQuestion(text);
  if(multilingualQuestion.isQuestion){
   if(multilingualQuestion.type==="definition"&&multilingualQuestion.target)return {intent:"question-definition",subject:multilingualQuestion.target,confidence:multilingualQuestion.confidence,language:multilingualQuestion.language};
@@ -62,7 +67,7 @@ function infer(memory,subject,reasoner=new ReasoningEngine()){return reasoner.in
 
 export class CognitiveCore {
  constructor(memory=new CognitiveMemory(),hcsData={}){
-  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.reasoner=new ReasoningEngine();for(const rule of hcsData.reasoningRules||[])this.reasoner.addRule(rule);this.lastHCS=null;
+  this.memory=memory;this.state=new WorkingState();this.cycle=0;this.hcs=new HumanCognitiveSystems(hcsData);this.reasoner=new ReasoningEngine();for(const rule of hcsData.reasoningRules||[])this.reasoner.addRule(rule);this.lastHCS=null;this.context=new ContextManager(hcsData.conversationContext||{});this.dialogue=new DialogueManager();
   // Small, explicit baseline knowledge; provenance remains visible and distinct from user input.
   if(!this.memory.semantic.some(f=>fold(f.subject)==="trai dat"&&f.source==="builtin-knowledge")){
    this.memory.learn("Trái Đất","là","hành tinh","builtin-knowledge",0.99);
@@ -71,6 +76,17 @@ export class CognitiveCore {
   }
  }
  process(input,representation){
+  const original=String(input??"").trim();
+  const contextBefore=this.context.snapshot();
+  const resolution=this.dialogue.resolve(original,contextBefore);
+  const result=this.processTurn(resolution.text,representation);
+  const contextAfter=this.context.observe({input:original,interpreted:resolution.text,result,memory:this.memory,preserveTopic:resolution.usedContext});
+  result.trace.unshift({stage:"dialogue-management",usedContext:resolution.usedContext,topic:resolution.topic,reason:resolution.reason,interpretedInput:resolution.text});
+  result.trace.push({stage:"context-management",currentTopic:contextAfter.currentTopic,pendingQuestion:Boolean(contextAfter.pendingQuestion),turnCount:contextAfter.turnCount});
+  result.conversationContext=contextAfter;
+  return result;
+ }
+ processTurn(input,representation){
   const raw=String(input??"").trim();this.cycle++;this.state.update(raw,representation);
   const trace=[{stage:"perception",result:"input represented",format:representation?.format||"plain-text"}];
   this.lastHCS=this.hcs.process(raw);
@@ -90,8 +106,22 @@ export class CognitiveCore {
    if(facts.length){const lines=facts.map(f=>f.subject+" "+f.relation+" "+f.object+".");const sources=[...new Set(facts.map(f=>f.source))];const note=sources.includes("user-stated")?" Có dữ kiện do người dùng cung cấp, chưa được xác minh.":sources.includes("builtin-knowledge")?" Dựa trên tri thức nền được đóng gói trong nguyên mẫu.":"";return {text:lines.join("\n")+note+(result.method.includes("two-link-inference")?" Đây là suy luận từ hai quan hệ đã lưu, chưa phải xác minh thực tế.":""),trace,confidence:result.confidence};}
    return {text:"Tui chưa có đủ dữ kiện để định nghĩa “"+intent.subject+"”. Tui sẽ không tự bịa câu trả lời.",trace,confidence:0};
   }
-  if(intent.intent==="greeting")return {text:"Chào ông. Tui đang nghe đây. Ông muốn tìm hiểu hay thử suy luận điều gì?",trace,confidence:0.9};
+  if(intent.intent==="greeting")return {text:"Chào ông! Tui đã nhận ra đây là lời chào. Ông muốn hỏi, tìm hiểu hay cùng tui xử lý một vấn đề nào?",trace,confidence:0.99};
+  if(intent.intent==="capabilities-question"){
+   trace.push({stage:"answer-planning",goal:"explain-available-capabilities",evidence:"implemented-kernel-modules"});
+   return {text:"Tui có thể hỗ trợ ông ở những việc CPB-01 hiện đã có module: phân tích một số định dạng văn bản và tệp; ghi nhớ dữ kiện ông cung cấp; tìm lại dữ kiện và suy luận quan hệ đơn giản; giải biểu thức toán học; hỗ trợ viết và chạy thử JavaScript trong môi trường giới hạn; tìm kiếm web nếu ông đã cấu hình dịch vụ tìm kiếm. Tui cũng có thể phân tích câu hỏi và giải thích từng bước.\n\nGiới hạn hiện tại: tui chưa có khả năng tự hiểu mọi câu tự do như một mô hình ngôn ngữ lớn, và kiến thức chưa có nguồn thì tui không nên tự bịa. Ông có thể đưa một nhiệm vụ cụ thể, tui sẽ chia nhỏ việc cần làm và xử lý phần nào có công cụ hỗ trợ.",trace,confidence:0.98};
+  }
   if(intent.intent==="identity-question")return {text:"Tui là CPB-01, một nguyên mẫu có bộ nhớ khái niệm, nhận diện ý định, truy xuất quan hệ và suy luận biểu tượng còn giới hạn.",trace,confidence:1};
+  if(intent.intent==="question"){
+   const plan=planAnswer({question:raw,memory:this.memory,questionProfile:this.lastHCS.question});
+   trace.push({stage:"answer-planning",goal:plan.goal,questionType:plan.questionType,evidenceCount:plan.evidence.length,sourceGroups:plan.sourceGroups,conflicts:plan.conflicts.length,searchQuery:plan.searchQuery});
+   if(plan.goal==="answer-from-local-evidence"){
+    trace.push({stage:"memory-retrieval",matches:plan.evidence.length},{stage:"reasoning",method:"ranked-local-evidence",confidence:plan.confidence,conflicts:plan.conflicts.length});
+    return {text:plan.answer,trace,confidence:plan.confidence};
+   }
+   trace.push({stage:"memory-retrieval",matches:0},{stage:"reasoning",method:"insufficient-local-evidence"});
+   return {text:"Tui đã phân loại được đây là câu hỏi, nhưng bộ nhớ nội bộ chưa có dữ kiện đủ liên quan. Nếu Search Worker đã được cấu hình, tui có thể tự tra cứu nguồn công khai rồi tổng hợp; nếu chưa, cần bật tìm kiếm trước khi trả lời chính xác.",trace,confidence:0.1,needsExternalEvidence:true,searchQuery:plan.searchQuery};
+  }
   const recalled=this.memory.recall(raw);
   trace.push({stage:"memory-retrieval",matches:recalled.length},{stage:"reasoning",method:"evidence-association"});
   if(recalled.length)return {text:"Tui tìm thấy các dữ kiện có liên quan:\n"+recalled.map(f=>"- "+f.subject+" "+f.relation+" "+f.object+" [nguồn: "+f.source+"]").join("\n")+"\nTui chưa đủ căn cứ để kết luận xa hơn.",trace,confidence:Math.min(0.7,recalled[0].confidence)};
