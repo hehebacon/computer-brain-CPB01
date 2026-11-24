@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { understandInput, inputEditDistance } from "../cognition/input-understanding.js";
+import { analyzeText } from "../input-engine.js";
 import { classifyUtterance } from "../cognitive-core.js";
 
 test("recovers the demonstrated Vietnamese greeting typo without losing original input",()=>{
@@ -11,6 +12,16 @@ test("recovers the demonstrated Vietnamese greeting typo without losing original
  assert.equal(result.intentHint,"greeting");
  assert.ok(result.confidence>=0.82);
  assert.equal(classifyUtterance(result.correctedText).intent,"greeting");
+});
+
+test("normalizes greeting typos through the same representation path used by brain.js",()=>{
+ const raw="xuynnn chao";
+ const representation=analyzeText(raw);
+ assert.equal(representation.format,"plain-text");
+ const result=understandInput(raw,representation);
+ assert.equal(result.correctedText,"xin chao");
+ assert.equal(result.intentHint,"greeting");
+ assert.equal(result.original,raw);
 });
 
 test("recovers exaggerated repeated-letter greeting typos without losing original input",()=>{
