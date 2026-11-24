@@ -49,7 +49,11 @@ jobs:
           '
           node --check /tmp/cpb01-index-inline-check.mjs
       - name: Check build script syntax
-        run: bash -n build.sh
+        run: |
+          bash -n build.sh
+          bash -n scripts/bootstrap-self-improvement.sh
+          bash -n scripts/deploy-self-improvement.sh
+          bash -n scripts/verify-self-improvement.sh
       - name: Build static site
         run: |
           bash build.sh
