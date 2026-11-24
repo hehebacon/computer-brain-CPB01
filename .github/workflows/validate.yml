@@ -25,8 +25,16 @@ jobs:
           node --check answer-synthesizer.js
           node --check self-improvement-governance.js
           node --check worker/search-worker.js
+          node --check worker/self-improvement-worker.js
           node --check input-engine.js
           node --check universal-representation.js
+          node --check learning/learning-engine.js
+          node --check learning/association-engine.js
+          node --check learning/source-verifier.js
+          node --check learning/research-agent.js
+          node --check learning/self-improvement-runner.js
+          node --check learning/update-audit-log.js
+          node --check learning/d1-store.js
       - name: Run regression tests
         run: npm test
       - name: Check inline browser module syntax
@@ -57,3 +65,5 @@ jobs:
           test -f dist/code-workbench.js
           test -f dist/direct-search.js
           test -f dist/self-improvement-governance.js
+          test -f dist/learning/learning-engine.js
+          test -f dist/learning/self-improvement-runner.js
